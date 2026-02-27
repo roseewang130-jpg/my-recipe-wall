@@ -3,23 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>zizi食谱 - 修复版</title>
+    <title>zizi食谱 - 完美修复版</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .recipe-card { display: flex; gap: 16px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); align-items: flex-start; position: relative; margin-bottom: 20px; border: 1px solid #f0f0f0; cursor: pointer; transition: transform 0.2s; }
-        .recipe-card:hover { transform: translateY(-3px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .recipe-card:hover { transform: translateY(-3px); }
         .recipe-info { flex: 1; min-width: 0; }
         .recipe-thumb { width: 100px; height: 100px; border-radius: 16px; object-fit: cover; background: #f9fafb; flex-shrink: 0; border: 1px solid #eee; }
-        .del-btn { position: absolute; top: 12px; right: 12px; background: #fee2e2; color: #ef4444; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; z-index: 20; }
-        #post-modal input, #post-modal textarea, #post-modal select { width: 100%; margin-bottom: 12px; padding: 14px; border-radius: 12px; border: 1px solid #e5e7eb; background: #f9fafb; outline: none; }
+        #post-modal input, #post-modal textarea, #post-modal select, #auth-modal input { width: 100%; margin-bottom: 12px; padding: 14px; border-radius: 12px; border: 1px solid #e5e7eb; background: #f9fafb; outline: none; }
     </style>
 </head>
 <body class="bg-[#fafafa] min-h-screen pb-24 text-gray-900">
 
     <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b px-6 py-4 flex justify-between items-center">
         <h1 class="text-xl font-black text-emerald-600">🥘 zizi食谱</h1>
-        <button id="auth-btn" class="text-xs font-bold bg-emerald-600 text-white px-4 py-2 rounded-full shadow-md">注册/登录</button>
+        <button id="auth-btn" onclick="openAuth()" class="text-xs font-bold bg-emerald-600 text-white px-4 py-2 rounded-full shadow-md">注册/登录</button>
     </header>
 
     <main id="recipe-list" class="p-6 max-w-2xl mx-auto">
@@ -46,24 +45,29 @@
         <button onclick="location.reload()" class="text-2xl">👤</button>
     </nav>
 
+    <div id="auth-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-6 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-8">
+            <h2 id="auth-title" class="text-2xl font-black mb-6">欢迎回来</h2>
+            <input id="auth-user" type="text" placeholder="你的名字">
+            <input id="auth-pwd" type="password" placeholder="密码">
+            <button onclick="handleAuth()" id="auth-submit" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black">确认</button>
+            <p class="mt-4 text-center text-xs text-gray-400">
+                <button onclick="toggleAuthMode()" id="auth-toggle-btn" class="underline">没有账号？点击注册</button>
+            </p>
+            <button onclick="closeAuth()" class="w-full mt-4 text-gray-300 text-[10px] font-bold">暂时离开</button>
+        </div>
+    </div>
+
     <div id="post-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-6 backdrop-blur-sm">
         <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
             <h2 class="text-xl font-black mb-6">发布我的美食</h2>
-            
-            <label class="block text-[10px] text-gray-400 font-black mb-2 uppercase tracking-widest">发布到</label>
-            <select id="post-type" class="cursor-pointer">
-                <option value="recipe">🥘 菜谱区 (详细步骤)</option>
-                <option value="moment">📸 瞬间区 (精美晒图)</option>
+            <select id="post-type">
+                <option value="recipe">🥘 菜谱区</option>
+                <option value="moment">📸 瞬间区</option>
             </select>
-
             <input id="in-title" type="text" placeholder="给它起个名字">
-            <textarea id="in-notes" placeholder="说点什么吧..." class="h-32 resize-none"></textarea>
-            
-            <div class="mb-6">
-                <label class="block text-[10px] text-gray-400 font-black mb-2 uppercase">上传图片</label>
-                <input id="in-file" type="file" accept="image/*" class="text-xs">
-            </div>
-            
+            <textarea id="in-notes" placeholder="说点什么吧..." class="h-32 resize-none border border-gray-200 p-3 rounded-xl w-full mb-3"></textarea>
+            <input id="in-file" type="file" accept="image/*" class="text-xs mb-6">
             <div class="flex gap-4">
                 <button onclick="closePost()" class="flex-1 py-4 text-gray-400 font-bold">取消</button>
                 <button id="pub-btn" onclick="publish()" class="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black shadow-lg">确认发布</button>
@@ -73,19 +77,26 @@
 
     <script>
         const SB_URL = "https://kmsbrisiajtykflnskpj.supabase.co";
-        // 请确保这是你的 Anon Key
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imttc2JyaXNpYWp0eWtmbG5za3BqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwODM2NzIsImV4cCI6MjA4NzY1OTY3Mn0.e8-qaJpmrGVc_GcWVEBHEUHWWiJ40Ax5BMyWTZsGqbE";
         const _client = supabase.createClient(SB_URL, SB_KEY);
 
         let currentUser = null;
+        let isSignUp = false;
 
         _client.auth.onAuthStateChange((event, session) => {
             currentUser = session?.user || null;
-            document.getElementById('auth-btn').innerText = currentUser ? `登出 (${currentUser.email.split('@')[0]})` : "注册/登录";
+            const btn = document.getElementById('auth-btn');
+            if (currentUser) {
+                btn.innerText = `登出 (${currentUser.email.split('@')[0]})`;
+                btn.onclick = () => _client.auth.signOut().then(() => location.reload());
+            } else {
+                btn.innerText = "注册/登录";
+                btn.onclick = openAuth;
+            }
             fetchRecipes();
         });
 
-        // 导航切换
+        // 导航切换逻辑
         function openHome() {
             document.getElementById('recipe-list').classList.remove('hidden');
             document.getElementById('moment-feed').classList.add('hidden');
@@ -98,9 +109,9 @@
             fetchMoments();
         }
 
+        // 数据拉取
         async function fetchRecipes() {
             const { data } = await _client.from('recipes').select('*').order('created_at', { ascending: false });
-            // 过滤菜谱：没有type或type为recipe
             const list = data?.filter(i => !i.type || i.type === 'recipe') || [];
             document.getElementById('recipe-container').innerHTML = list.map(i => `
                 <div class="recipe-card">
@@ -117,14 +128,43 @@
         async function fetchMoments() {
             const { data } = await _client.from('recipes').select('*').eq('type', 'moment').order('created_at', { ascending: false });
             document.getElementById('moment-list').innerHTML = (data || []).map(i => `
-                <div class="rounded-2xl overflow-hidden aspect-[3/4] bg-gray-200">
+                <div class="rounded-2xl overflow-hidden aspect-[3/4] bg-gray-100 shadow-sm">
                     <img src="${i.image_url}" class="w-full h-full object-cover">
                 </div>
             `).join('');
         }
 
+        // 【登录逻辑修复】
+        function openAuth() { document.getElementById('auth-modal').classList.remove('hidden'); }
+        function closeAuth() { document.getElementById('auth-modal').classList.add('hidden'); }
+        function toggleAuthMode() { 
+            isSignUp = !isSignUp; 
+            document.getElementById('auth-title').innerText = isSignUp ? "新厨师注册" : "欢迎回来";
+            document.getElementById('auth-toggle-btn').innerText = isSignUp ? "已有账号？去登录" : "没有账号？点击注册";
+        }
+
+        async function handleAuth() {
+            const user = document.getElementById('auth-user').value.trim();
+            const pwd = document.getElementById('auth-pwd').value.trim();
+            if (!user || pwd.length < 6) return alert("名字必填，密码至少6位哦");
+            const email = `${encodeURIComponent(user)}@rose.com`; // 处理中文名转义
+            try {
+                if (isSignUp) {
+                    const { error } = await _client.auth.signUp({ email, password: pwd });
+                    if (error) throw error;
+                    alert("注册成功！现在可以去登录了");
+                    toggleAuthMode();
+                } else {
+                    const { error } = await _client.auth.signInWithPassword({ email, password: pwd });
+                    if (error) throw new Error("名字或密码不对哦");
+                    closeAuth();
+                }
+            } catch (e) { alert(e.message); }
+        }
+
+        // 发布逻辑
         async function publish() {
-            if (!currentUser) return alert("请先登录");
+            if (!currentUser) return openAuth();
             const title = document.getElementById('in-title').value.trim();
             const notes = document.getElementById('in-notes').value.trim();
             const type = document.getElementById('post-type').value;
@@ -136,7 +176,6 @@
             btn.disabled = true; btn.innerText = "正在飞往云端...";
 
             try {
-                // 【修复点】处理文件名：使用纯数字+随机字符，避免中文导致的 Invalid Key 错误
                 const fileExt = file.name.split('.').pop();
                 const safeName = `${Date.now()}_${Math.random().toString(36).substr(2, 5)}.${fileExt}`;
                 const path = `public/${safeName}`;
@@ -156,16 +195,9 @@
                 alert("分享成功！");
                 closePost();
                 type === 'moment' ? openMoment() : openHome();
-            } catch (e) { 
-                alert("发布失败: " + e.message); 
-                console.error(e);
-            } finally { 
-                btn.disabled = false; btn.innerText = "确认发布"; 
-            }
+            } catch (e) { alert("发布失败: " + e.message); }
+            finally { btn.disabled = false; btn.innerText = "确认发布"; }
         }
 
-        function openPost() { document.getElementById('post-modal').classList.remove('hidden'); }
-        function closePost() { document.getElementById('post-modal').classList.add('hidden'); }
-    </script>
-</body>
-</html>
+        function openPost() { if(!currentUser) openAuth(); else document.getElementById('post-modal').classList.remove('hidden'); }
+        function closePost() { document.getElementById('post-modal').classList.add('hidden');
