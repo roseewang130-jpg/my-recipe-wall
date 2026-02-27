@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的社交食谱墙</title>
+    <title>我的食谱墙</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -19,7 +19,7 @@
 <body class="bg-[#fafafa] min-h-screen pb-24 text-gray-900">
 
     <header class="sticky top-0 shadow-sm z-30 bg-white/80 backdrop-blur-md border-b px-6 py-4 flex justify-between items-center">
-        <h1 class="text-xl font-black text-emerald-600">🥘 社交食谱墙</h1>
+        <h1 class="text-xl font-black text-emerald-600">🥘 我的食谱墙</h1>
         <button id="auth-btn" onclick="openAuth()" class="text-xs font-bold bg-emerald-600 text-white px-4 py-2 rounded-full shadow-md">注册/登录</button>
     </header>
 
@@ -30,7 +30,7 @@
     <main id="moment-feed" class="p-4 max-w-2xl mx-auto hidden">
         <div class="mb-6">
             <h2 class="text-2xl font-black text-gray-800">美食瞬间</h2>
-            <p class="text-xs text-gray-400">心山太累令人忽略了什么好吃的</p>
+            <p class="text-xs text-gray-400">今天吃了什么好吃的</p>
         </div>
         <div id="moment-list" class="grid grid-cols-2 gap-3"></div>
     </main>
@@ -82,7 +82,44 @@
         const SB_URL = "你的URL";
         const SB_KEY = "你的KEY";
         const _client = supabase.createClient(SB_URL, SB_KEY);
+// 补充完整的登录逻辑
+let isSignUp = false;
 
+function openAuth() {
+    document.getElementById('auth-modal').classList.remove('hidden');
+}
+
+function closeAuth() {
+    document.getElementById('auth-modal').classList.add('hidden');
+}
+
+function toggleAuthMode() {
+    isSignUp = !isSignUp;
+    document.getElementById('auth-title').innerText = isSignUp ? "新用户注册" : "欢迎回来";
+    document.getElementById('auth-confirm-btn').innerText = isSignUp ? "立即注册" : "立即登录";
+}
+
+async function handleAuth() {
+    const user = document.getElementById('auth-user').value.trim();
+    const pwd = document.getElementById('auth-pwd').value.trim();
+    if (user.length < 3) return alert("名字至少要3个字哦");
+    
+    const email = `${user}@rose.com`; // 模拟邮箱
+    try {
+        if (isSignUp) {
+            const { error } = await _client.auth.signUp({ email, password: pwd });
+            if (error) throw error;
+            alert("注册成功，现在去登录吧！");
+            toggleAuthMode();
+        } else {
+            const { error } = await _client.auth.signInWithPassword({ email, password: pwd });
+            if (error) throw new Error("名字或密码不对哦");
+            closeAuth();
+        }
+    } catch (e) {
+        alert(e.message);
+    }
+}
         let currentUser = null;
         let currentPostType = 'recipe';
 
@@ -190,4 +227,3 @@
     </script>
 </body>
 </html>
-
