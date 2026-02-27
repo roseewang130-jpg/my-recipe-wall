@@ -3,23 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的食谱墙</title>
+    <title>我的社交食谱墙</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* 页面样式优化 */
         .recipe-card { display: flex; gap: 16px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); align-items: flex-start; position: relative; margin-bottom: 16px; transition: transform 0.2s; cursor: pointer; }
         .recipe-card:hover { transform: translateY(-3px); }
         .recipe-info { flex: 1; min-width: 0; }
         .recipe-thumb { width: 100px; height: 100px; border-radius: 16px; object-fit: cover; background: #f9fafb; flex-shrink: 0; border: 1px solid #eee; }
-        .del-btn { position: absolute; top: 12px; right: 12px; background: #fee2e2; color: #ef4444; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; z-index: 10; }
-        #post-modal input, #post-modal textarea { width: 100%; margin-bottom: 12px; padding: 14px; border-radius: 12px; border: 1px solid #e5e7eb; background: #f9fafb; outline: none; font-size: 14px; }
-        .type-btn-active { background: white; shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); color: #059669; }
+        #post-modal input, #post-modal textarea, #auth-modal input { width: 100%; margin-bottom: 12px; padding: 14px; border-radius: 12px; border: 1px solid #e5e7eb; background: #f9fafb; outline: none; font-size: 14px; }
+        .hidden { display: none; }
     </style>
 </head>
 <body class="bg-[#fafafa] min-h-screen pb-24 text-gray-900">
 
     <header class="sticky top-0 shadow-sm z-30 bg-white/80 backdrop-blur-md border-b px-6 py-4 flex justify-between items-center">
-        <h1 class="text-xl font-black text-emerald-600">🥘 我的食谱墙</h1>
+        <h1 class="text-xl font-black text-emerald-600">🥘 社交食谱墙</h1>
         <button id="auth-btn" onclick="openAuth()" class="text-xs font-bold bg-emerald-600 text-white px-4 py-2 rounded-full shadow-md">注册/登录</button>
     </header>
 
@@ -29,8 +29,8 @@
 
     <main id="moment-feed" class="p-4 max-w-2xl mx-auto hidden">
         <div class="mb-6">
-            <h2 class="text-2xl font-black text-gray-800">美食瞬间</h2>
-            <p class="text-xs text-gray-400">今天吃了什么好吃的</p>
+            <h2 class="text-2xl font-black text-gray-800 text-center">美食瞬间</h2>
+            <p class="text-xs text-gray-400 text-center">今天吃了什么好吃的？</p>
         </div>
         <div id="moment-list" class="grid grid-cols-2 gap-3"></div>
     </main>
@@ -38,10 +38,9 @@
     <main id="user-profile" class="p-6 max-w-2xl mx-auto hidden">
         <div class="bg-white rounded-3xl p-8 mb-8 text-center border border-gray-100">
             <div id="user-avatar" class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl font-black mx-auto mb-4">?</div>
-            <h2 id="profile-name" class="text-xl font-black text-gray-800 mb-1">未登录</h2>
-            <p id="profile-stats" class="text-xs text-gray-400 font-medium">共发布 0 篇内容</p>
+            <h2 id="profile-name" class="text-xl font-black text-gray-800 mb-1">未登录用户</h2>
+            <p id="profile-stats" class="text-xs text-gray-400 font-medium font-bold">共发布 0 篇内容</p>
         </div>
-        <h3 class="font-black text-gray-800 mb-4 flex items-center text-sm"><span class="mr-2">🖼️</span> 我的作品</h3>
         <div id="my-recipe-list" class="space-y-4"></div>
     </main>
 
@@ -49,90 +48,58 @@
         <button onclick="openHome()" class="text-2xl">🏠</button>
         <button onclick="openMoment()" class="text-2xl">📸</button>
         <button onclick="openPost()" class="bg-emerald-500 text-white w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg -mt-10 border-4 border-white active:scale-90 transition-transform">
-            <span class="text-3xl">+</span>
+            <span class="text-3xl font-bold">+</span>
         </button>
         <button onclick="openUserProfile()" class="text-2xl">👤</button>
     </nav>
 
     <div id="post-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-6 backdrop-blur-md">
-        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8">
             <h2 class="text-xl font-black mb-6">分享我的美食</h2>
-            
             <div class="flex gap-2 mb-6 p-1 bg-gray-100 rounded-2xl">
                 <button id="type-recipe" onclick="setPostType('recipe')" class="flex-1 py-2 rounded-xl text-xs font-bold bg-white shadow-sm text-emerald-600">🥘 菜谱</button>
                 <button id="type-moment" onclick="setPostType('moment')" class="flex-1 py-2 rounded-xl text-xs font-bold text-gray-400">📸 瞬间</button>
             </div>
-
             <input id="in-title" type="text" placeholder="给它起个名字...">
-            <textarea id="in-notes" placeholder="制作步骤或心情..." class="h-32 resize-none"></textarea>
-            
-            <div class="mb-6">
-                <label class="block text-[10px] text-gray-400 font-black mb-2 uppercase">上传图片</label>
-                <input id="in-file" type="file" accept="image/*" class="text-xs">
-            </div>
-            
+            <textarea id="in-notes" placeholder="制作步骤或心情..." class="h-32 resize-none w-full p-4 bg-gray-50 rounded-xl border mb-4"></textarea>
+            <input id="in-file" type="file" accept="image/*" class="text-xs mb-6">
             <div class="flex gap-4">
                 <button onclick="closePost()" class="flex-1 py-4 text-gray-400 font-bold">取消</button>
-                <button id="pub-btn" onclick="publish()" class="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black">确认发布</button>
+                <button id="pub-btn" onclick="publish()" class="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black shadow-lg">确认发布</button>
             </div>
         </div>
     </div>
 
+    <div id="auth-modal" class="fixed inset-0 bg-black/60 hidden z-[60] flex items-center justify-center p-6 backdrop-blur-md">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-8">
+            <h2 id="auth-title" class="text-2xl font-black mb-6 text-center text-emerald-600">欢迎回来</h2>
+            <input id="auth-user" type="text" placeholder="你的响亮大名">
+            <input id="auth-pwd" type="password" placeholder="设置一个密码">
+            <button id="auth-confirm-btn" onclick="handleAuth()" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black mb-4 shadow-lg">立即登录</button>
+            <p onclick="toggleAuthMode()" class="text-center text-xs text-gray-400 font-bold cursor-pointer">没有账号？点击注册一个</p>
+            <button onclick="closeAuth()" class="w-full py-2 text-gray-300 text-xs mt-4">取消</button>
+        </div>
+    </div>
+
     <script>
+        // 1. 初始化
         const SB_URL = "你的URL";
         const SB_KEY = "你的KEY";
         const _client = supabase.createClient(SB_URL, SB_KEY);
-// 补充完整的登录逻辑
-let isSignUp = false;
 
-function openAuth() {
-    document.getElementById('auth-modal').classList.remove('hidden');
-}
-
-function closeAuth() {
-    document.getElementById('auth-modal').classList.add('hidden');
-}
-
-function toggleAuthMode() {
-    isSignUp = !isSignUp;
-    document.getElementById('auth-title').innerText = isSignUp ? "新用户注册" : "欢迎回来";
-    document.getElementById('auth-confirm-btn').innerText = isSignUp ? "立即注册" : "立即登录";
-}
-
-async function handleAuth() {
-    const user = document.getElementById('auth-user').value.trim();
-    const pwd = document.getElementById('auth-pwd').value.trim();
-    if (user.length < 3) return alert("名字至少要3个字哦");
-    
-    const email = `${user}@rose.com`; // 模拟邮箱
-    try {
-        if (isSignUp) {
-            const { error } = await _client.auth.signUp({ email, password: pwd });
-            if (error) throw error;
-            alert("注册成功，现在去登录吧！");
-            toggleAuthMode();
-        } else {
-            const { error } = await _client.auth.signInWithPassword({ email, password: pwd });
-            if (error) throw new Error("名字或密码不对哦");
-            closeAuth();
-        }
-    } catch (e) {
-        alert(e.message);
-    }
-}
         let currentUser = null;
         let currentPostType = 'recipe';
+        let isSignUp = false;
 
-        // 视图切换逻辑
+        // 2. 视图切换
         function hideAll() {
-            document.getElementById('recipe-list').classList.add('hidden');
-            document.getElementById('moment-feed').classList.add('hidden');
-            document.getElementById('user-profile').classList.add('hidden');
+            ['recipe-list', 'moment-feed', 'user-profile', 'post-modal', 'auth-modal'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
         }
-
         function openHome() { hideAll(); document.getElementById('recipe-list').classList.remove('hidden'); fetchRecipes(); }
         function openMoment() { hideAll(); document.getElementById('moment-feed').classList.remove('hidden'); fetchMoments(); }
-        async function openUserProfile() { 
+        function openUserProfile() { 
             if(!currentUser) return openAuth();
             hideAll(); 
             document.getElementById('user-profile').classList.remove('hidden');
@@ -142,88 +109,120 @@ async function handleAuth() {
             fetchMyRecipes();
         }
 
+        // 3. 登录处理
+        function openAuth() { document.getElementById('auth-modal').classList.remove('hidden'); }
+        function closeAuth() { document.getElementById('auth-modal').classList.add('hidden'); }
+        function toggleAuthMode() {
+            isSignUp = !isSignUp;
+            document.getElementById('auth-title').innerText = isSignUp ? "新用户注册" : "欢迎回来";
+            document.getElementById('auth-confirm-btn').innerText = isSignUp ? "立即注册" : "立即登录";
+        }
+        async function handleAuth() {
+            const user = document.getElementById('auth-user').value.trim();
+            const pwd = document.getElementById('auth-pwd').value.trim();
+            if(user.length < 2 || pwd.length < 6) return alert("名字和密码要写全哦（密码至少6位）");
+            
+            const email = `${user}@rose.com`;
+            try {
+                if(isSignUp) {
+                    const { error } = await _client.auth.signUp({ email, password: pwd });
+                    if(error) throw error;
+                    alert("注册成功！快去登录吧");
+                    toggleAuthMode();
+                } else {
+                    const { error } = await _client.auth.signInWithPassword({ email, password: pwd });
+                    if(error) throw new Error("名字或密码不对");
+                    closeAuth();
+                }
+            } catch(e) { alert(e.message); }
+        }
+
+        // 4. 发布逻辑 (带 type 分区)
+        function openPost() { if(!currentUser) return openAuth(); document.getElementById('post-modal').classList.remove('hidden'); }
+        function closePost() { document.getElementById('post-modal').classList.add('hidden'); }
         function setPostType(type) {
             currentPostType = type;
             const rBtn = document.getElementById('type-recipe');
             const mBtn = document.getElementById('type-moment');
-            if(type === 'recipe') {
-                rBtn.className = "flex-1 py-2 rounded-xl text-xs font-bold bg-white shadow-sm text-emerald-600";
-                mBtn.className = "flex-1 py-2 rounded-xl text-xs font-bold text-gray-400";
-            } else {
-                mBtn.className = "flex-1 py-2 rounded-xl text-xs font-bold bg-white shadow-sm text-emerald-600";
-                rBtn.className = "flex-1 py-2 rounded-xl text-xs font-bold text-gray-400";
-            }
+            rBtn.className = type === 'recipe' ? "flex-1 py-2 rounded-xl text-xs font-bold bg-white shadow-sm text-emerald-600" : "flex-1 py-2 rounded-xl text-xs font-bold text-gray-400";
+            mBtn.className = type === 'moment' ? "flex-1 py-2 rounded-xl text-xs font-bold bg-white shadow-sm text-emerald-600" : "flex-1 py-2 rounded-xl text-xs font-bold text-gray-400";
         }
 
-        // 数据抓取逻辑 (增加 type 过滤)
+        async function publish() {
+            const title = document.getElementById('in-title').value.trim();
+            const notes = document.getElementById('in-notes').value.trim();
+            const file = document.getElementById('in-file').files[0];
+            const btn = document.getElementById('pub-btn');
+            if(!title || !file) return alert("写个标题再传张图吧~");
+
+            btn.disabled = true; btn.innerText = "发布中...";
+            try {
+                const path = `public/${Date.now()}_${file.name}`;
+                const { error: upErr } = await _client.storage.from('recipe-images').upload(path, file);
+                if(upErr) throw upErr;
+
+                const { data } = _client.storage.from('recipe-images').getPublicUrl(path);
+                const { error: dbErr } = await _client.from('recipes').insert([{
+                    title, notes, image_url: data.publicUrl,
+                    author: currentUser.email.split('@')[0],
+                    created_by: currentUser.id,
+                    type: currentPostType // 这里保存分区类型
+                }]);
+                if(dbErr) throw dbErr;
+                alert("分享成功！"); closePost(); location.reload();
+            } catch(e) { alert(e.message); btn.disabled = false; btn.innerText = "确认发布"; }
+        }
+
+        // 5. 数据抓取
         async function fetchRecipes() {
             const list = document.getElementById('recipe-list');
             const { data } = await _client.from('recipes').select('*').eq('type', 'recipe').order('created_at', {ascending: false});
-            list.innerHTML = data ? data.map(i => renderCard(i, false)).join('') : '暂无菜谱';
+            list.innerHTML = data?.length ? data.map(i => `
+                <div class="recipe-card">
+                    <div class="recipe-info">
+                        <h3 class="font-black text-gray-800 mb-1">${i.title}</h3>
+                        <p class="text-[10px] text-gray-400 line-clamp-2">${i.notes || '美味不需要解释'}</p>
+                        <p class="text-[9px] text-emerald-500 font-bold mt-2">@${i.author}</p>
+                    </div>
+                    <img src="${i.image_url}" class="recipe-thumb">
+                </div>
+            `).join('') : '<div class="text-center py-20 text-gray-300">还没有菜谱，快去发布吧</div>';
         }
 
         async function fetchMoments() {
             const list = document.getElementById('moment-list');
             const { data } = await _client.from('recipes').select('*').eq('type', 'moment').order('created_at', {ascending: false});
-            list.innerHTML = data ? data.map(i => `
-                <div class="relative rounded-2xl aspect-[3/4] overflow-hidden bg-gray-100 shadow-sm">
+            list.innerHTML = data?.length ? data.map(i => `
+                <div class="relative rounded-2xl aspect-[3/4] overflow-hidden bg-gray-100 shadow-sm border">
                     <img src="${i.image_url}" class="w-full h-full object-cover">
-                    <div class="absolute bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent w-full text-white text-[10px]">@${i.author}</div>
+                    <div class="absolute bottom-0 p-3 bg-gradient-to-t from-black/70 to-transparent w-full">
+                        <p class="text-white text-[10px] font-bold">@${i.author}</p>
+                        <p class="text-white/80 text-[8px] truncate">${i.title}</p>
+                    </div>
                 </div>
-            `).join('') : '暂无瞬间';
+            `).join('') : '<div class="col-span-2 text-center py-20 text-gray-300">暂无瞬间</div>';
         }
 
         async function fetchMyRecipes() {
             const list = document.getElementById('my-recipe-list');
             const { data } = await _client.from('recipes').select('*').eq('created_by', currentUser.id).order('created_at', {ascending: false});
             document.getElementById('profile-stats').innerText = `共发布 ${data?.length || 0} 篇内容`;
-            list.innerHTML = data ? data.map(i => renderCard(i, true)).join('') : '空空如也';
-        }
-
-        function renderCard(i, showDel) {
-            return `
-            <div class="recipe-card">
-                ${showDel ? `<div class="del-btn" onclick="event.stopPropagation(); del('${i.id}')">✕</div>` : ''}
-                <div class="recipe-info">
-                    <h3 class="font-black text-gray-800 mb-1">${i.title}</h3>
-                    <p class="text-[10px] text-gray-400 line-clamp-2">${i.notes || ''}</p>
+            list.innerHTML = data?.map(i => `
+                <div class="flex items-center gap-4 bg-white p-4 rounded-2xl border border-gray-100">
+                    <img src="${i.image_url}" class="w-12 h-12 rounded-lg object-cover">
+                    <div class="flex-1 text-xs font-bold">${i.title} <span class="text-[9px] text-gray-300 ml-2">(${i.type})</span></div>
                 </div>
-                <img src="${i.image_url}" class="recipe-thumb">
-            </div>`;
+            `).join('') || '空空如也';
         }
 
-        // 发布逻辑
-        async function publish() {
-            const title = document.getElementById('in-title').value;
-            const notes = document.getElementById('in-notes').value;
-            const file = document.getElementById('in-file').files[0];
-            if(!title || !file) return alert("请填写标题并上传图片");
-
-            const path = `public/${Date.now()}_${file.name}`;
-            await _client.storage.from('recipe-images').upload(path, file);
-            const { data: urlData } = _client.storage.from('recipe-images').getPublicUrl(path);
-
-            await _client.from('recipes').insert([{
-                title, notes, image_url: urlData.publicUrl,
-                author: currentUser.email.split('@')[0],
-                created_by: currentUser.id,
-                type: currentPostType
-            }]);
-            
-            alert("发布成功！");
-            location.reload();
-        }
-
-        // 初始化
+        // 6. 状态监听
         _client.auth.onAuthStateChange((event, session) => {
             currentUser = session?.user;
-            document.getElementById('auth-btn').innerText = currentUser ? `退出 (${currentUser.email.split('@')[0]})` : "注册/登录";
+            const btn = document.getElementById('auth-btn');
+            btn.innerText = currentUser ? `登出 (${currentUser.email.split('@')[0]})` : "注册/登录";
+            btn.onclick = currentUser ? () => _client.auth.signOut().then(() => location.reload()) : openAuth;
             fetchRecipes();
         });
-
-        function openPost() { document.getElementById('post-modal').classList.remove('hidden'); }
-        function closePost() { document.getElementById('post-modal').classList.add('hidden'); }
-        function openAuth() { /* 保持之前的登录逻辑... */ alert("请调用 handleAuth 登录"); }
     </script>
 </body>
 </html>
