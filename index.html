@@ -27,10 +27,6 @@
     </main>
 
     <main id="moment-feed" class="p-4 max-w-2xl mx-auto hidden">
-        <div class="mb-6 text-center">
-            <h2 class="text-2xl font-black text-gray-800">美食瞬间</h2>
-            <p class="text-xs text-gray-400">今天吃了什么好吃的？</p>
-        </div>
         <div id="moment-list" class="grid grid-cols-2 gap-3"></div>
     </main>
 
@@ -60,7 +56,7 @@
                 <button id="type-moment" onclick="setPostType('moment')" class="flex-1 py-2 rounded-xl text-xs font-bold text-gray-400">📸 瞬间</button>
             </div>
             <input id="in-title" type="text" placeholder="给它起个名字...">
-            <textarea id="in-notes" placeholder="制作步骤或心情..." class="h-32 resize-none w-full p-4 bg-gray-50 rounded-xl border mb-4"></textarea>
+            <textarea id="in-notes" placeholder="制作步骤..." class="h-32 resize-none w-full p-4 bg-gray-50 rounded-xl border mb-4"></textarea>
             <input id="in-file" type="file" accept="image/*" class="text-xs mb-6">
             <div class="flex gap-4">
                 <button onclick="closePost()" class="flex-1 py-4 text-gray-400 font-bold">取消</button>
@@ -74,25 +70,25 @@
             <h2 id="auth-title" class="text-2xl font-black mb-6 text-center text-emerald-600">欢迎回来</h2>
             <input id="auth-user" type="text" placeholder="你的响亮大名">
             <input id="auth-pwd" type="password" placeholder="设置一个密码">
-            <button id="auth-confirm-btn" onclick="handleAuth()" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black mb-4">立即登录</button>
+            <button id="auth-confirm-btn" onclick="handleAuth()" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black mb-4 shadow-lg">立即登录</button>
             <p onclick="toggleAuthMode()" class="text-center text-xs text-gray-400 font-bold cursor-pointer">没有账号？点击注册一个</p>
             <button onclick="closeAuth()" class="w-full py-2 text-gray-300 text-xs mt-4">取消</button>
         </div>
     </div>
 
     <script>
-       // --- 1. 变量初始化 ---
-const SB_URL = "https://kmsbrisiajtykflnskpj.supabase.co"; // 你的项目 URL
-const SB_KEY = "sb_publishable_8QVYkdaZoctctZYLt5D0mQ_QNoNERKDO1p6_N62iX-pI_W..."; // 这里填入你完整的 Publishable key
+        // --- 1. 参数已替换 (URL 和 Key 填入) ---
+        const SB_URL = "https://kmsbrisiajtykflnskpj.supabase.co";
+        const SB_KEY = "sb_publishable_8QVYkdaZoctctZYLt5D0mQ_QNoNERKD";
+        
+        // 正确初始化客户端
+        const _client = supabase.createClient(SB_URL, SB_KEY);
 
-// 正确的初始化函数是 supabase.createClient(URL, KEY)
-const _client = supabase.createClient(SB_URL, SB_KEY);
+        let currentUser = null;
+        let currentPostType = 'recipe';
+        let isSignUp = false;
 
-let currentUser = null;
-let currentPostType = 'recipe';
-let isSignUp = false;
-
-        // --- 2. 核心逻辑：登录/注册 ---
+        // --- 2. 核心函数 ---
         function openAuth() { document.getElementById('auth-modal').classList.remove('hidden'); }
         function closeAuth() { document.getElementById('auth-modal').classList.add('hidden'); }
         function toggleAuthMode() {
@@ -100,60 +96,31 @@ let isSignUp = false;
             document.getElementById('auth-title').innerText = isSignUp ? "新用户注册" : "欢迎回来";
             document.getElementById('auth-confirm-btn').innerText = isSignUp ? "立即注册" : "立即登录";
         }
+
         async function handleAuth() {
             const user = document.getElementById('auth-user').value.trim();
             const pwd = document.getElementById('auth-pwd').value.trim();
-            if(!user || pwd.length < 6) return alert("请检查名字和密码（至少6位）");
+            if(!user || pwd.length < 6) return alert("名字和密码（至少6位）都要填哦");
+            
             const email = `${user}@rose.com`;
             try {
                 if(isSignUp) {
                     const { error } = await _client.auth.signUp({ email, password: pwd });
                     if(error) throw error;
-                    alert("注册成功！请登录"); toggleAuthMode();
+                    alert("注册成功！请点击登录");
+                    toggleAuthMode();
                 } else {
                     const { error } = await _client.auth.signInWithPassword({ email, password: pwd });
-                    if(error) throw new Error("名字或密码错误");
+                    if(error) throw new Error("登录失败，请检查名字或密码");
                     closeAuth();
                 }
             } catch(e) { alert(e.message); }
         }
 
-        // --- 3. 核心逻辑：发布与分区 ---
-        function openPost() { if(!currentUser) return openAuth(); document.getElementById('post-modal').classList.remove('hidden'); }
-        function closePost() { document.getElementById('post-modal').classList.add('hidden'); }
-        function setPostType(type) {
-            currentPostType = type;
-            document.getElementById('type-recipe').className = type === 'recipe' ? "flex-1 py-2 rounded-xl text-xs font-bold bg-white shadow-sm text-emerald-600" : "flex-1 py-2 rounded-xl text-xs font-bold text-gray-400";
-            document.getElementById('type-moment').className = type === 'moment' ? "flex-1 py-2 rounded-xl text-xs font-bold bg-white shadow-sm text-emerald-600" : "flex-1 py-2 rounded-xl text-xs font-bold text-gray-400";
-        }
-
-        async function publish() {
-            const title = document.getElementById('in-title').value.trim();
-            const notes = document.getElementById('in-notes').value.trim();
-            const file = document.getElementById('in-file').files[0];
-            const btn = document.getElementById('pub-btn');
-            if(!title || !file) return alert("请填写完整信息");
-
-            btn.disabled = true; btn.innerText = "上传中...";
-            try {
-                const path = `public/${Date.now()}_${file.name}`;
-                await _client.storage.from('recipe-images').upload(path, file);
-                const { data: urlData } = _client.storage.from('recipe-images').getPublicUrl(path);
-
-                await _client.from('recipes').insert([{
-                    title, notes, image_url: urlData.publicUrl,
-                    author: currentUser.email.split('@')[0],
-                    created_by: currentUser.id,
-                    type: currentPostType // 保存分区
-                }]);
-                alert("发布成功！"); location.reload();
-            } catch(e) { alert(e.message); btn.disabled = false; btn.innerText = "确认发布"; }
-        }
-
-        // --- 4. 核心逻辑：数据展示 ---
         async function fetchRecipes() {
             const list = document.getElementById('recipe-list');
-            const { data } = await _client.from('recipes').select('*').eq('type', 'recipe').order('created_at', {ascending: false});
+            const { data, error } = await _client.from('recipes').select('*').eq('type', 'recipe').order('created_at', {ascending: false});
+            if(error) return list.innerHTML = "加载失败，请检查数据库配置";
             list.innerHTML = data?.map(i => `
                 <div class="recipe-card">
                     <div class="recipe-info">
@@ -163,43 +130,17 @@ let isSignUp = false;
                     </div>
                     <img src="${i.image_url}" class="recipe-thumb">
                 </div>
-            `).join('') || '<div class="text-center py-20 text-gray-300">暂无内容</div>';
+            `).join('') || '<div class="text-center py-20 text-gray-300">还没有内容</div>';
         }
 
-        async function fetchMoments() {
-            const list = document.getElementById('moment-list');
-            const { data } = await _client.from('recipes').select('*').eq('type', 'moment').order('created_at', {ascending: false});
-            list.innerHTML = data?.map(i => `
-                <div class="relative rounded-2xl aspect-[3/4] overflow-hidden border">
-                    <img src="${i.image_url}" class="w-full h-full object-cover">
-                    <div class="absolute bottom-0 p-3 bg-gradient-to-t from-black/70 to-transparent w-full">
-                        <p class="text-white text-[10px] font-bold">@${i.author}</p>
-                    </div>
-                </div>
-            `).join('') || '<div class="col-span-2 text-center py-20 text-gray-300">暂无内容</div>';
-        }
-
-        async function fetchMyRecipes() {
-            const list = document.getElementById('my-recipe-list');
-            const { data } = await _client.from('recipes').select('*').eq('created_by', currentUser.id).order('created_at', {ascending: false});
-            document.getElementById('profile-stats').innerText = `共发布 ${data?.length || 0} 篇内容`;
-            list.innerHTML = data?.map(i => `
-                <div class="flex items-center gap-4 bg-white p-4 rounded-2xl border">
-                    <img src="${i.image_url}" class="w-12 h-12 rounded-lg object-cover">
-                    <div class="text-xs font-bold">${i.title} <span class="text-gray-300 ml-2">(${i.type})</span></div>
-                </div>
-            `).join('') || '尚无作品';
-        }
-
-        // --- 5. 视图控制 ---
-        function hideAll() { 
-            ['recipe-list', 'moment-feed', 'user-profile'].forEach(id => document.getElementById(id).classList.add('hidden')); 
-        }
+        function hideAll() { ['recipe-list', 'moment-feed', 'user-profile'].forEach(id => document.getElementById(id).classList.add('hidden')); }
         function openHome() { hideAll(); document.getElementById('recipe-list').classList.remove('hidden'); fetchRecipes(); }
-        function openMoment() { hideAll(); document.getElementById('moment-feed').classList.remove('hidden'); fetchMoments(); }
-        function openUserProfile() { if(!currentUser) return openAuth(); hideAll(); document.getElementById('user-profile').classList.remove('hidden'); fetchMyRecipes(); }
+        function openMoment() { hideAll(); document.getElementById('moment-feed').classList.remove('hidden'); }
+        function openUserProfile() { if(!currentUser) return openAuth(); hideAll(); document.getElementById('user-profile').classList.remove('hidden'); }
+        function openPost() { if(!currentUser) return openAuth(); document.getElementById('post-modal').classList.remove('hidden'); }
+        function closePost() { document.getElementById('post-modal').classList.add('hidden'); }
+        function setPostType(t) { currentPostType = t; }
 
-        // --- 6. 状态监听 ---
         _client.auth.onAuthStateChange((event, session) => {
             currentUser = session?.user;
             const btn = document.getElementById('auth-btn');
@@ -210,4 +151,3 @@ let isSignUp = false;
     </script>
 </body>
 </html>
-
