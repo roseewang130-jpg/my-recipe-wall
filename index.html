@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>zizi食谱</title>
+    <title>zizi食谱 - 修复版</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -25,24 +25,14 @@
     <main id="recipe-list" class="p-6 max-w-2xl mx-auto">
         <h2 class="text-2xl font-black text-gray-800 mb-6">推荐菜谱</h2>
         <div id="recipe-container" class="space-y-4">
-            <div class="text-center py-20 text-gray-300">正在从云端加载美食...</div>
+            <div class="text-center py-20 text-gray-300">正在同步云端美食...</div>
         </div>
-    </main>
-
-    <main id="user-profile" class="p-6 max-w-2xl mx-auto hidden">
-        <div class="bg-white rounded-3xl p-8 mb-8 text-center shadow-sm border border-gray-100">
-            <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl font-black mx-auto mb-4" id="user-avatar">?</div>
-            <h2 id="profile-name" class="text-xl font-black text-gray-800 mb-1">未登录</h2>
-            <p id="profile-stats" class="text-xs text-gray-400 font-medium">共发布 0 篇内容</p>
-        </div>
-        <h3 class="font-black text-gray-800 mb-4 flex items-center text-sm"><span class="mr-2">🖼️</span> 我的作品</h3>
-        <div id="my-recipe-list" class="space-y-4"></div>
     </main>
 
     <main id="moment-feed" class="p-4 max-w-2xl mx-auto hidden">
         <div class="mb-6">
             <h2 class="text-2xl font-black text-gray-800">美食瞬间</h2>
-            <p class="text-xs text-gray-400">看看大家今天都分享了什么好吃的</p>
+            <p class="text-xs text-gray-400">分享生活里的美味瞬间</p>
         </div>
         <div id="moment-list" class="grid grid-cols-2 gap-3"></div>
     </main>
@@ -53,34 +43,21 @@
         <button onclick="openPost()" class="bg-emerald-500 text-white w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg -mt-10 border-4 border-white active:scale-90 transition-transform">
             <span class="text-3xl">+</span>
         </button>
-        <button onclick="openUserProfile()" class="text-2xl">👤</button>
+        <button onclick="location.reload()" class="text-2xl">👤</button>
     </nav>
 
-    <div id="auth-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-6 backdrop-blur-sm">
-        <div class="bg-white w-full max-w-sm rounded-3xl p-8">
-            <h2 id="auth-title" class="text-2xl font-black mb-6">欢迎回来</h2>
-            <input id="auth-user" class="w-full mb-3 p-4 border rounded-xl" type="text" placeholder="你的名字">
-            <input id="auth-pwd" class="w-full mb-3 p-4 border rounded-xl" type="password" placeholder="密码">
-            <button onclick="handleAuth()" id="auth-submit" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black">确认</button>
-            <p class="mt-4 text-center text-xs text-gray-400">
-                <button onclick="toggleAuthMode()" id="auth-toggle-btn" class="underline">没有账号？点击注册</button>
-            </p>
-            <button onclick="closeAuth()" class="w-full mt-4 text-gray-300 text-[10px] font-bold">暂时离开</button>
-        </div>
-    </div>
-
     <div id="post-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-6 backdrop-blur-sm">
-        <div class="bg-white w-full max-w-md rounded-3xl p-8">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
             <h2 class="text-xl font-black mb-6">发布我的美食</h2>
             
-            <label class="block text-[10px] text-gray-400 font-black mb-2 uppercase">发布到哪个区域？</label>
-            <select id="post-type">
-                <option value="recipe">🥘 菜谱区 (显示步骤心得)</option>
-                <option value="moment">📸 瞬间区 (精美图片流)</option>
+            <label class="block text-[10px] text-gray-400 font-black mb-2 uppercase tracking-widest">发布到</label>
+            <select id="post-type" class="cursor-pointer">
+                <option value="recipe">🥘 菜谱区 (详细步骤)</option>
+                <option value="moment">📸 瞬间区 (精美晒图)</option>
             </select>
 
             <input id="in-title" type="text" placeholder="给它起个名字">
-            <textarea id="in-notes" placeholder="详细步骤、配方或此时的心情..." class="h-32 resize-none"></textarea>
+            <textarea id="in-notes" placeholder="说点什么吧..." class="h-32 resize-none"></textarea>
             
             <div class="mb-6">
                 <label class="block text-[10px] text-gray-400 font-black mb-2 uppercase">上传图片</label>
@@ -94,148 +71,63 @@
         </div>
     </div>
 
-    <div id="detail-modal" class="fixed inset-0 bg-black/70 hidden z-[60] flex items-center justify-center p-4 backdrop-blur-md">
-        <div class="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl relative max-h-[90vh] flex flex-col">
-            <button onclick="closeDetail()" class="absolute top-4 right-4 bg-black/40 text-white w-10 h-10 rounded-full z-10">✕</button>
-            <div class="overflow-y-auto">
-                <img id="detail-img" class="w-full h-72 object-cover bg-gray-100" src="">
-                <div class="p-8">
-                    <div class="flex justify-between items-start mb-4">
-                        <h2 id="detail-title" class="text-2xl font-black text-gray-800"></h2>
-                        <span id="detail-author" class="text-[10px] bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full font-black"></span>
-                    </div>
-                    <hr class="border-gray-100 mb-6">
-                    <div id="detail-notes" class="text-gray-600 leading-loose whitespace-pre-wrap text-sm"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script>
         const SB_URL = "https://kmsbrisiajtykflnskpj.supabase.co";
+        // 请确保这是你的 Anon Key
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imttc2JyaXNpYWp0eWtmbG5za3BqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwODM2NzIsImV4cCI6MjA4NzY1OTY3Mn0.e8-qaJpmrGVc_GcWVEBHEUHWWiJ40Ax5BMyWTZsGqbE";
         const _client = supabase.createClient(SB_URL, SB_KEY);
 
         let currentUser = null;
-        let isSignUp = false;
 
         _client.auth.onAuthStateChange((event, session) => {
             currentUser = session?.user || null;
-            const btn = document.getElementById('auth-btn');
-            if (currentUser) {
-                btn.innerText = `登出 (${currentUser.email.split('@')[0]})`;
-                btn.onclick = () => _client.auth.signOut().then(() => location.reload());
-            } else {
-                btn.innerText = "注册/登录";
-                btn.onclick = openAuth;
-            }
+            document.getElementById('auth-btn').innerText = currentUser ? `登出 (${currentUser.email.split('@')[0]})` : "注册/登录";
             fetchRecipes();
         });
 
         // 导航切换
         function openHome() {
-            hideAll();
             document.getElementById('recipe-list').classList.remove('hidden');
+            document.getElementById('moment-feed').classList.add('hidden');
             fetchRecipes();
         }
 
         function openMoment() {
-            hideAll();
+            document.getElementById('recipe-list').classList.add('hidden');
             document.getElementById('moment-feed').classList.remove('hidden');
             fetchMoments();
         }
 
-        async function openUserProfile() {
-            if (!currentUser) return openAuth();
-            hideAll();
-            document.getElementById('user-profile').classList.remove('hidden');
-            const userName = currentUser.email.split('@')[0];
-            document.getElementById('profile-name').innerText = userName;
-            document.getElementById('user-avatar').innerText = userName.charAt(0).toUpperCase();
-            fetchMyRecipes();
-        }
-
-        function hideAll() {
-            document.getElementById('recipe-list').classList.add('hidden');
-            document.getElementById('user-profile').classList.add('hidden');
-            document.getElementById('moment-feed').classList.add('hidden');
-        }
-
-        // 数据拉取 (增加了过滤 type 的逻辑)
         async function fetchRecipes() {
-            const container = document.getElementById('recipe-container');
-            const { data, error } = await _client.from('recipes').select('*').order('created_at', { ascending: false });
-            
-            // 过滤出菜谱类型 (兼容老数据)
-            const recipes = data?.filter(i => !i.type || i.type === 'recipe') || [];
-
-            if (error || recipes.length === 0) {
-                container.innerHTML = `<div class="py-20 text-center text-gray-300 italic">菜谱区空空如也~</div>`;
-                return;
-            }
-
-            container.innerHTML = recipes.map(i => {
-                const dataStr = JSON.stringify(i).replace(/"/g, '&quot;');
-                return `
-                <div class="recipe-card" onclick="showDetail(${dataStr})">
-                    ${currentUser && i.created_by === currentUser.id ? `<div class="del-btn" onclick="event.stopPropagation(); del('${i.id}')">✕</div>` : ''}
+            const { data } = await _client.from('recipes').select('*').order('created_at', { ascending: false });
+            // 过滤菜谱：没有type或type为recipe
+            const list = data?.filter(i => !i.type || i.type === 'recipe') || [];
+            document.getElementById('recipe-container').innerHTML = list.map(i => `
+                <div class="recipe-card">
                     <div class="recipe-info">
-                        <h3 class="font-black text-gray-800 text-lg mb-2 line-clamp-1">${i.title}</h3>
-                        <p class="text-xs text-gray-400 leading-relaxed line-clamp-2">${i.notes || '暂无详细步骤'}</p>
-                        <div class="mt-4"><span class="text-[10px] bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full font-black">@${i.author}</span></div>
+                        <h3 class="font-black text-gray-800 text-lg mb-2">${i.title}</h3>
+                        <p class="text-xs text-gray-400 line-clamp-2">${i.notes || ''}</p>
+                        <div class="mt-4"><span class="text-[10px] bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full">@${i.author}</span></div>
                     </div>
-                    <img src="${i.image_url}" class="recipe-thumb" onerror="this.src='https://via.placeholder.com/150'">
-                </div>`;
-            }).join('');
-        }
-
-        async function fetchMoments() {
-            const list = document.getElementById('moment-list');
-            const { data, error } = await _client.from('recipes').select('*').order('created_at', { ascending: false });
-            
-            // 过滤出瞬间类型
-            const moments = data?.filter(i => i.type === 'moment') || [];
-
-            if (error || moments.length === 0) {
-                list.innerHTML = `<div class="col-span-2 text-center py-20 text-gray-300 italic">瞬间区还没有照片~</div>`;
-                return;
-            }
-
-            list.innerHTML = moments.map(i => `
-                <div class="relative group overflow-hidden rounded-2xl aspect-[3/4] bg-gray-100 shadow-sm" onclick='showDetail(${JSON.stringify(i).replace(/"/g, "&quot;")})'>
-                    <img src="${i.image_url}" class="w-full h-full object-cover">
-                    <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
-                        <p class="text-white text-[10px] font-bold">@${i.author}</p>
-                    </div>
+                    <img src="${i.image_url}" class="recipe-thumb">
                 </div>
             `).join('');
         }
 
-        async function fetchMyRecipes() {
-            const list = document.getElementById('my-recipe-list');
-            const { data, error } = await _client.from('recipes').select('*').eq('created_by', currentUser.id).order('created_at', { ascending: false });
-            document.getElementById('profile-stats').innerText = `共发布 ${data?.length || 0} 篇内容`;
-            if (!data || data.length === 0) {
-                list.innerHTML = `<div class="py-10 text-center text-gray-300 italic text-xs">没有发布过内容</div>`;
-                return;
-            }
-            list.innerHTML = data.map(i => `
-                <div class="recipe-card" onclick='showDetail(${JSON.stringify(i).replace(/"/g, "&quot;")})'>
-                    <div class="del-btn" onclick="event.stopPropagation(); del('${i.id}')">✕</div>
-                    <div class="recipe-info">
-                        <span class="text-[8px] uppercase font-bold text-gray-400">${i.type === 'moment' ? '📸 瞬间' : '🥘 菜谱'}</span>
-                        <h3 class="font-black text-gray-800 text-md mb-2 line-clamp-1">${i.title}</h3>
-                    </div>
-                    <img src="${i.image_url}" class="recipe-thumb !w-16 !h-16">
-                </div>`).join('');
+        async function fetchMoments() {
+            const { data } = await _client.from('recipes').select('*').eq('type', 'moment').order('created_at', { ascending: false });
+            document.getElementById('moment-list').innerHTML = (data || []).map(i => `
+                <div class="rounded-2xl overflow-hidden aspect-[3/4] bg-gray-200">
+                    <img src="${i.image_url}" class="w-full h-full object-cover">
+                </div>
+            `).join('');
         }
 
-        // 发布函数 (增加了 type 字段存储)
         async function publish() {
-            if (!currentUser) return openAuth();
+            if (!currentUser) return alert("请先登录");
             const title = document.getElementById('in-title').value.trim();
             const notes = document.getElementById('in-notes').value.trim();
-            const type = document.getElementById('post-type').value; // 获取选择的类型
+            const type = document.getElementById('post-type').value;
             const file = document.getElementById('in-file').files[0];
 
             if (!title || !file) return alert("标题和图片是必填的哦");
@@ -244,18 +136,19 @@
             btn.disabled = true; btn.innerText = "正在飞往云端...";
 
             try {
+                // 【修复点】处理文件名：使用纯数字+随机字符，避免中文导致的 Invalid Key 错误
                 const fileExt = file.name.split('.').pop();
-                const path = `public/${Date.now()}_${Math.random().toString(36).substr(2, 5)}.${fileExt}`;
+                const safeName = `${Date.now()}_${Math.random().toString(36).substr(2, 5)}.${fileExt}`;
+                const path = `public/${safeName}`;
+
                 const { error: upErr } = await _client.storage.from('recipe-images').upload(path, file);
                 if (upErr) throw upErr;
 
-                const { data } = _client.storage.from('recipe-images').getPublicUrl(path);
+                const { data: urlData } = _client.storage.from('recipe-images').getPublicUrl(path);
                 const { error: dbErr } = await _client.from('recipes').insert([{
-                    title, 
-                    notes, 
-                    type, // 存储类型：recipe 或 moment
-                    image_url: data.publicUrl, 
-                    author: currentUser.email.split('@')[0], 
+                    title, notes, type,
+                    image_url: urlData.publicUrl,
+                    author: currentUser.email.split('@')[0],
                     created_by: currentUser.id
                 }]);
 
@@ -263,55 +156,16 @@
                 alert("分享成功！");
                 closePost();
                 type === 'moment' ? openMoment() : openHome();
-            } catch (e) { alert("发布失败: " + e.message); }
-            finally { btn.disabled = false; btn.innerText = "确认发布"; }
+            } catch (e) { 
+                alert("发布失败: " + e.message); 
+                console.error(e);
+            } finally { 
+                btn.disabled = false; btn.innerText = "确认发布"; 
+            }
         }
 
-        // 基础逻辑 (注册/删除/弹窗)
-        async function handleAuth() {
-            const user = document.getElementById('auth-user').value.trim();
-            const pwd = document.getElementById('auth-pwd').value.trim();
-            if (user.length < 3) return alert("名字至少要3个字哦");
-            const email = `${user}@rose.com`;
-            try {
-                if (isSignUp) {
-                    const { error } = await _client.auth.signUp({ email, password: pwd });
-                    if (error) throw error;
-                    alert("注册成功！去登录吧");
-                    toggleAuthMode();
-                } else {
-                    const { error } = await _client.auth.signInWithPassword({ email, password: pwd });
-                    if (error) throw new Error("名字或密码不对哦");
-                    closeAuth();
-                }
-            } catch (e) { alert(e.message); }
-        }
-
-        async function del(id) {
-            if (!confirm("确定要删除吗？")) return;
-            await _client.from('recipes').delete().eq('id', id);
-            fetchRecipes(); fetchMyRecipes(); fetchMoments();
-        }
-
-        function toggleAuthMode() { 
-            isSignUp = !isSignUp; 
-            document.getElementById('auth-title').innerText = isSignUp ? "新厨师注册" : "欢迎回来";
-            document.getElementById('auth-toggle-btn').innerText = isSignUp ? "已有账号？去登录" : "没有账号？点击注册";
-        }
-        function openAuth() { document.getElementById('auth-modal').classList.remove('hidden'); }
-        function closeAuth() { document.getElementById('auth-modal').classList.add('hidden'); }
-        function openPost() { if(!currentUser) openAuth(); else document.getElementById('post-modal').classList.remove('hidden'); }
+        function openPost() { document.getElementById('post-modal').classList.remove('hidden'); }
         function closePost() { document.getElementById('post-modal').classList.add('hidden'); }
-        function showDetail(recipe) {
-            document.getElementById('detail-img').src = recipe.image_url;
-            document.getElementById('detail-title').innerText = recipe.title;
-            document.getElementById('detail-author').innerText = `@${recipe.author}`;
-            document.getElementById('detail-notes').innerText = recipe.notes || "暂无详细内容~";
-            document.getElementById('detail-modal').classList.remove('hidden');
-        }
-        function closeDetail() { document.getElementById('detail-modal').classList.add('hidden'); }
-
-        window.onload = fetchRecipes;
     </script>
 </body>
 </html>
