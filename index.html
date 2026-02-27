@@ -13,6 +13,8 @@
         .recipe-thumb { width: 100px; height: 100px; border-radius: 16px; object-fit: cover; background: #f9fafb; flex-shrink: 0; border: 1px solid #eee; }
         #post-modal input, #post-modal textarea, #auth-modal input { width: 100%; margin-bottom: 12px; padding: 14px; border-radius: 12px; border: 1px solid #e5e7eb; background: #f9fafb; outline: none; font-size: 14px; }
         .hidden { display: none; }
+        .nav-btn { font-size: 24px; transition: transform 0.1s; }
+        .nav-btn:active { transform: scale(0.8); }
     </style>
 </head>
 <body class="bg-[#fafafa] min-h-screen pb-24 text-gray-900">
@@ -26,36 +28,106 @@
         <div class="text-center py-20 text-gray-300">正在同步云端美食...</div>
     </main>
 
+    <main id="user-profile" class="p-6 max-w-2xl mx-auto hidden">
+        <div class="bg-white rounded-3xl p-8 mb-8 text-center border border-gray-100 shadow-sm">
+            <div id="user-avatar" class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl font-black mx-auto mb-4 text-uppercase">?</div>
+            <h2 id="profile-name" class="text-xl font-black text-gray-800 mb-1">未登录</h2>
+            <p id="profile-stats" class="text-xs text-gray-400 font-bold">已同步云端数据</p>
+        </div>
+        <h3 class="font-black text-gray-800 mb-4 px-2">我的发布</h3>
+        <div id="my-recipe-list" class="space-y-4">
+            <p class="text-center text-gray-300 py-10">暂无内容</p>
+        </div>
+    </main>
+
     <nav class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t p-4 flex justify-around items-center shadow-2xl z-40">
-        <button onclick="location.reload()" class="text-2xl">🏠</button>
-        <button onclick="openPost()" class="bg-emerald-500 text-white w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg -mt-10 border-4 border-white active:scale-90">
+        <button onclick="showPage('home')" class="nav-btn">🏠</button>
+        <button onclick="openPost()" class="bg-emerald-500 text-white w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg -mt-10 border-4 border-white active:scale-90 transition-all">
             <span class="text-3xl font-bold">+</span>
         </button>
+        <button onclick="showPage('profile')" class="nav-btn">👤</button>
     </nav>
 
+    <div id="post-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-6 backdrop-blur-md">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8">
+            <h2 class="text-xl font-black mb-6">分享我的美食</h2>
+            <input id="in-title" type="text" placeholder="给它起个名字...">
+            <textarea id="in-notes" placeholder="简单的描述或制作步骤..." class="h-32 resize-none w-full p-4 bg-gray-50 rounded-xl border mb-4 outline-none"></textarea>
+            <input id="in-image" type="text" placeholder="粘贴图片链接 (可选)">
+            <div class="flex gap-4">
+                <button onclick="closePost()" class="flex-1 py-4 text-gray-400 font-bold">取消</button>
+                <button id="pub-btn" onclick="handlePublish()" class="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black shadow-lg">确认发布</button>
+            </div>
+        </div>
+    </div>
+
     <div id="auth-modal" class="fixed inset-0 bg-black/60 hidden z-[60] flex items-center justify-center p-6 backdrop-blur-md">
-        <div class="bg-white w-full max-w-sm rounded-3xl p-8">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-8 shadow-2xl">
             <h2 id="auth-title" class="text-2xl font-black mb-6 text-center text-emerald-600">欢迎回来</h2>
-            <input id="auth-user" type="text" placeholder="你的名字">
-            <input id="auth-pwd" type="password" placeholder="至少6位密码">
-            <button id="auth-confirm-btn" onclick="handleAuth()" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black mb-4 shadow-lg">立即登录</button>
-            <p onclick="toggleAuthMode()" class="text-center text-xs text-gray-400 font-bold cursor-pointer">没有账号？点击注册</p>
+            <input id="auth-user" type="text" placeholder="你的响亮大名">
+            <input id="auth-pwd" type="password" placeholder="设置一个密码 (至少6位)">
+            <button id="auth-confirm-btn" onclick="handleAuth()" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black mb-4 shadow-lg active:scale-95 transition-all">立即登录</button>
+            <p onclick="toggleAuthMode()" class="text-center text-xs text-gray-400 font-bold cursor-pointer hover:text-emerald-500">没有账号？点击注册一个</p>
             <button onclick="closeAuth()" class="w-full py-2 text-gray-300 text-xs mt-4">取消</button>
         </div>
     </div>
 
     <script>
-        // --- 核心配置 (已为你填好) ---
+        // --- 1. 初始化 (使用你已验证成功的参数) ---
         const SB_URL = "https://kmsbrisiajtykflnskpj.supabase.co";
-        // 这是从你的截图中提取出的完整逻辑，如果还报错，请重新点击 Supabase 的 Copy 图标
-        const SB_KEY = "sb_publishable_8QVYkdaZoctctZYLt5D0mQ_QNoNERKD"; 
-
+        const SB_KEY = "sb_publishable_8QVYkdaZoctctZYLt5D0mQ_QNoNERKD";
         const _client = supabase.createClient(SB_URL, SB_KEY);
 
         let currentUser = null;
         let isSignUp = false;
 
-        // --- 逻辑函数 ---
+        // --- 2. 页面导航逻辑 ---
+        function showPage(page) {
+            document.getElementById('recipe-list').classList.add('hidden');
+            document.getElementById('user-profile').classList.add('hidden');
+            
+            if (page === 'home') {
+                document.getElementById('recipe-list').classList.remove('hidden');
+                fetchData();
+            } else if (page === 'profile') {
+                if (!currentUser) return openAuth();
+                document.getElementById('user-profile').classList.remove('hidden');
+                updateProfileUI();
+            }
+        }
+
+        // --- 3. 发布逻辑 ---
+        function openPost() { if(!currentUser) return openAuth(); document.getElementById('post-modal').classList.remove('hidden'); }
+        function closePost() { document.getElementById('post-modal').classList.add('hidden'); }
+
+        async function handlePublish() {
+            const title = document.getElementById('in-title').value.trim();
+            const notes = document.getElementById('in-notes').value.trim();
+            const image_url = document.getElementById('in-image').value.trim() || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200';
+            
+            if(!title) return alert("标题不能为空哦");
+
+            const { error } = await _client.from('recipes').insert([
+                { 
+                    title, 
+                    notes, 
+                    image_url, 
+                    author: currentUser.email.split('@')[0],
+                    type: 'recipe'
+                }
+            ]);
+
+            if(error) {
+                alert("发布失败，请检查数据库 recipes 表是否允许插入内容");
+                console.error(error);
+            } else {
+                alert("发布成功！");
+                closePost();
+                showPage('home');
+            }
+        }
+
+        // --- 4. 登录注册逻辑 ---
         function openAuth() { document.getElementById('auth-modal').classList.remove('hidden'); }
         function closeAuth() { document.getElementById('auth-modal').classList.add('hidden'); }
         function toggleAuthMode() {
@@ -67,28 +139,58 @@
         async function handleAuth() {
             const user = document.getElementById('auth-user').value.trim();
             const pwd = document.getElementById('auth-pwd').value.trim();
-            if(!user || pwd.length < 6) return alert("请检查名字和密码（至少6位）");
+            if(!user || pwd.length < 6) return alert("名字和密码（至少6位）都要填哦");
             
-            const email = `${user}@test.com`;
+            const email = `${user}@rose.com`;
             try {
                 if(isSignUp) {
                     const { error } = await _client.auth.signUp({ email, password: pwd });
                     if(error) throw error;
-                    alert("注册成功，请立即登录！"); toggleAuthMode();
+                    alert("注册成功！请点击登录");
+                    toggleAuthMode();
                 } else {
                     const { error } = await _client.auth.signInWithPassword({ email, password: pwd });
-                    if(error) throw new Error("名字或密码不对哦");
+                    if(error) throw new Error("登录失败，请检查名字或密码");
                     closeAuth();
                 }
             } catch(e) { alert(e.message); }
         }
 
-        // 监听登录状态
+        // --- 5. 数据加载逻辑 ---
+        async function fetchData() {
+            const list = document.getElementById('recipe-list');
+            const { data, error } = await _client.from('recipes').select('*').order('created_at', {ascending: false});
+            
+            if(error) {
+                list.innerHTML = `<div class="text-center py-20 text-red-300">数据加载失败，请检查数据库权限</div>`;
+                return;
+            }
+            
+            list.innerHTML = data?.map(i => `
+                <div class="recipe-card">
+                    <div class="recipe-info">
+                        <h3 class="font-black text-gray-800 mb-1">${i.title}</h3>
+                        <p class="text-xs text-gray-400 line-clamp-2">${i.notes || '美味生活'}</p>
+                        <p class="text-[10px] text-emerald-500 font-bold mt-2">@${i.author}</p>
+                    </div>
+                    <img src="${i.image_url}" class="recipe-thumb" onerror="this.src='https://via.placeholder.com/100?text=Food'">
+                </div>
+            `).join('') || '<div class="text-center py-20 text-gray-300">空空如也，快去发布吧</div>';
+        }
+
+        function updateProfileUI() {
+            const userName = currentUser.email.split('@')[0];
+            document.getElementById('profile-name').innerText = userName;
+            document.getElementById('user-avatar').innerText = userName.charAt(0).toUpperCase();
+        }
+
+        // --- 6. 状态监听 ---
         _client.auth.onAuthStateChange((event, session) => {
             currentUser = session?.user;
             const btn = document.getElementById('auth-btn');
-            btn.innerText = currentUser ? `已登录: ${currentUser.email.split('@')[0]}` : "注册/登录";
+            btn.innerText = currentUser ? `登出 (${currentUser.email.split('@')[0]})` : "注册/登录";
             btn.onclick = currentUser ? () => _client.auth.signOut().then(() => location.reload()) : openAuth;
+            fetchData();
         });
     </script>
 </body>
