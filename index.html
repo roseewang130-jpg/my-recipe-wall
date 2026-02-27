@@ -81,7 +81,7 @@
     
     // [!!!关键!!!] 这里的 Key 依然是带省略号的，请手动去 Supabase 页面
     // 点击你在 image_29363a.png 中画红箭头指着的那个“复制”图标，然后粘贴到这里
-    const SB_KEY = "sb_publishable_8QVYkdaZoctctZYLt5D0mQ_QNoNERKD"; 
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imttc2JyaXNpYWp0eWtmbG5za3BqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwODM2NzIsImV4cCI6MjA4NzY1OTY3Mn0.e8-qaJpmrGVc_GcWVEBHEUHWWiJ40Ax5BMyWTZsGqbE"; 
 
     const _client = supabase.createClient(SB_URL, SB_KEY);
 
@@ -129,3 +129,4 @@
         const btn = document.getElementById('pub-btn');
 
         if (!title || !file) return alert("标题和照片都不能少哦");
+
