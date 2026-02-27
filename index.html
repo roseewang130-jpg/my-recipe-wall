@@ -81,14 +81,16 @@
     </div>
 
     <script>
-        // --- 1. 变量初始化 (必须放在最前面以解决 Initialization 报错) ---
-        const SB_URL = "https://kmsbrisiajtykflnskpj.supabase.co";
-        const SB_KEY = "你的KEY";
-        const _client = sb_publishable_8QVYkdaZoctctZYLt5D0mQ_QNoNERKD);
+       // --- 1. 变量初始化 ---
+const SB_URL = "https://kmsbrisiajtykflnskpj.supabase.co"; // 你的项目 URL
+const SB_KEY = "sb_publishable_8QVYkdaZoctctZYLt5D0mQ_QNoNERKDO1p6_N62iX-pI_W..."; // 这里填入你完整的 Publishable key
 
-        let currentUser = null;
-        let currentPostType = 'recipe';
-        let isSignUp = false; // 变量提升修复
+// 正确的初始化函数是 supabase.createClient(URL, KEY)
+const _client = supabase.createClient(SB_URL, SB_KEY);
+
+let currentUser = null;
+let currentPostType = 'recipe';
+let isSignUp = false;
 
         // --- 2. 核心逻辑：登录/注册 ---
         function openAuth() { document.getElementById('auth-modal').classList.remove('hidden'); }
@@ -208,3 +210,4 @@
     </script>
 </body>
 </html>
+
