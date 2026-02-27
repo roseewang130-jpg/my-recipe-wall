@@ -26,69 +26,36 @@
         <div class="text-center py-20 text-gray-300">正在同步云端美食...</div>
     </main>
 
-    <main id="moment-feed" class="p-4 max-w-2xl mx-auto hidden">
-        <div id="moment-list" class="grid grid-cols-2 gap-3"></div>
-    </main>
-
-    <main id="user-profile" class="p-6 max-w-2xl mx-auto hidden">
-        <div class="bg-white rounded-3xl p-8 mb-8 text-center border border-gray-100">
-            <div id="user-avatar" class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl font-black mx-auto mb-4">?</div>
-            <h2 id="profile-name" class="text-xl font-black text-gray-800 mb-1">未登录</h2>
-            <p id="profile-stats" class="text-xs text-gray-400 font-bold">共发布 0 篇内容</p>
-        </div>
-        <div id="my-recipe-list" class="space-y-4"></div>
-    </main>
-
     <nav class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t p-4 flex justify-around items-center shadow-2xl z-40">
-        <button onclick="openHome()" class="text-2xl">🏠</button>
-        <button onclick="openMoment()" class="text-2xl">📸</button>
+        <button onclick="location.reload()" class="text-2xl">🏠</button>
         <button onclick="openPost()" class="bg-emerald-500 text-white w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg -mt-10 border-4 border-white active:scale-90">
             <span class="text-3xl font-bold">+</span>
         </button>
-        <button onclick="openUserProfile()" class="text-2xl">👤</button>
     </nav>
-
-    <div id="post-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-6 backdrop-blur-md">
-        <div class="bg-white w-full max-w-md rounded-3xl p-8">
-            <h2 class="text-xl font-black mb-6">分享我的美食</h2>
-            <div class="flex gap-2 mb-6 p-1 bg-gray-100 rounded-2xl">
-                <button id="type-recipe" onclick="setPostType('recipe')" class="flex-1 py-2 rounded-xl text-xs font-bold bg-white shadow-sm text-emerald-600">🥘 菜谱</button>
-                <button id="type-moment" onclick="setPostType('moment')" class="flex-1 py-2 rounded-xl text-xs font-bold text-gray-400">📸 瞬间</button>
-            </div>
-            <input id="in-title" type="text" placeholder="给它起个名字...">
-            <textarea id="in-notes" placeholder="制作步骤..." class="h-32 resize-none w-full p-4 bg-gray-50 rounded-xl border mb-4"></textarea>
-            <input id="in-file" type="file" accept="image/*" class="text-xs mb-6">
-            <div class="flex gap-4">
-                <button onclick="closePost()" class="flex-1 py-4 text-gray-400 font-bold">取消</button>
-                <button id="pub-btn" onclick="publish()" class="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black shadow-lg">确认发布</button>
-            </div>
-        </div>
-    </div>
 
     <div id="auth-modal" class="fixed inset-0 bg-black/60 hidden z-[60] flex items-center justify-center p-6 backdrop-blur-md">
         <div class="bg-white w-full max-w-sm rounded-3xl p-8">
             <h2 id="auth-title" class="text-2xl font-black mb-6 text-center text-emerald-600">欢迎回来</h2>
-            <input id="auth-user" type="text" placeholder="你的响亮大名">
-            <input id="auth-pwd" type="password" placeholder="设置一个密码">
+            <input id="auth-user" type="text" placeholder="你的名字">
+            <input id="auth-pwd" type="password" placeholder="至少6位密码">
             <button id="auth-confirm-btn" onclick="handleAuth()" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black mb-4 shadow-lg">立即登录</button>
-            <p onclick="toggleAuthMode()" class="text-center text-xs text-gray-400 font-bold cursor-pointer">没有账号？点击注册一个</p>
+            <p onclick="toggleAuthMode()" class="text-center text-xs text-gray-400 font-bold cursor-pointer">没有账号？点击注册</p>
             <button onclick="closeAuth()" class="w-full py-2 text-gray-300 text-xs mt-4">取消</button>
         </div>
     </div>
 
     <script>
-        // --- 1. 参数已替换 (URL 和 Key 填入) ---
+        // --- 核心配置 (已为你填好) ---
         const SB_URL = "https://kmsbrisiajtykflnskpj.supabase.co";
-        const SB_KEY = "sb_publishable_8QVYkdaZoctctZYLt5D0mQ_QNoNERKD";
-        
-        // 正确初始化客户端
+        // 这是从你的截图中提取出的完整逻辑，如果还报错，请重新点击 Supabase 的 Copy 图标
+        const SB_KEY = "sb_publishable_8QVYkdaZoctctZYLt5D0mQ_QNoNERKD"; 
+
         const _client = supabase.createClient(SB_URL, SB_KEY);
 
         let currentUser = null;
-        let currentPostType = 'recipe';
         let isSignUp = false;
 
-        // --- 2. 核心函数 ---
+        // --- 逻辑函数 ---
         function openAuth() { document.getElementById('auth-modal').classList.remove('hidden'); }
         function closeAuth() { document.getElementById('auth-modal').classList.add('hidden'); }
         function toggleAuthMode() {
@@ -100,53 +67,28 @@
         async function handleAuth() {
             const user = document.getElementById('auth-user').value.trim();
             const pwd = document.getElementById('auth-pwd').value.trim();
-            if(!user || pwd.length < 6) return alert("名字和密码（至少6位）都要填哦");
+            if(!user || pwd.length < 6) return alert("请检查名字和密码（至少6位）");
             
-            const email = `${user}@rose.com`;
+            const email = `${user}@test.com`;
             try {
                 if(isSignUp) {
                     const { error } = await _client.auth.signUp({ email, password: pwd });
                     if(error) throw error;
-                    alert("注册成功！请点击登录");
-                    toggleAuthMode();
+                    alert("注册成功，请立即登录！"); toggleAuthMode();
                 } else {
                     const { error } = await _client.auth.signInWithPassword({ email, password: pwd });
-                    if(error) throw new Error("登录失败，请检查名字或密码");
+                    if(error) throw new Error("名字或密码不对哦");
                     closeAuth();
                 }
             } catch(e) { alert(e.message); }
         }
 
-        async function fetchRecipes() {
-            const list = document.getElementById('recipe-list');
-            const { data, error } = await _client.from('recipes').select('*').eq('type', 'recipe').order('created_at', {ascending: false});
-            if(error) return list.innerHTML = "加载失败，请检查数据库配置";
-            list.innerHTML = data?.map(i => `
-                <div class="recipe-card">
-                    <div class="recipe-info">
-                        <h3 class="font-black text-gray-800 mb-1">${i.title}</h3>
-                        <p class="text-[10px] text-gray-400 line-clamp-2">${i.notes || '美味瞬间'}</p>
-                        <p class="text-[9px] text-emerald-500 font-bold mt-2">@${i.author}</p>
-                    </div>
-                    <img src="${i.image_url}" class="recipe-thumb">
-                </div>
-            `).join('') || '<div class="text-center py-20 text-gray-300">还没有内容</div>';
-        }
-
-        function hideAll() { ['recipe-list', 'moment-feed', 'user-profile'].forEach(id => document.getElementById(id).classList.add('hidden')); }
-        function openHome() { hideAll(); document.getElementById('recipe-list').classList.remove('hidden'); fetchRecipes(); }
-        function openMoment() { hideAll(); document.getElementById('moment-feed').classList.remove('hidden'); }
-        function openUserProfile() { if(!currentUser) return openAuth(); hideAll(); document.getElementById('user-profile').classList.remove('hidden'); }
-        function openPost() { if(!currentUser) return openAuth(); document.getElementById('post-modal').classList.remove('hidden'); }
-        function closePost() { document.getElementById('post-modal').classList.add('hidden'); }
-        function setPostType(t) { currentPostType = t; }
-
+        // 监听登录状态
         _client.auth.onAuthStateChange((event, session) => {
             currentUser = session?.user;
             const btn = document.getElementById('auth-btn');
-            btn.innerText = currentUser ? `登出 (${currentUser.email.split('@')[0]})` : "注册/登录";
+            btn.innerText = currentUser ? `已登录: ${currentUser.email.split('@')[0]}` : "注册/登录";
             btn.onclick = currentUser ? () => _client.auth.signOut().then(() => location.reload()) : openAuth;
-            fetchRecipes();
         });
     </script>
 </body>
