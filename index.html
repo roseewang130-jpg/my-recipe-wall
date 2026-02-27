@@ -3,196 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的社交食谱墙</title>
+    <title>社交食谱墙 - 正式版</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --primary: #00695c; --bg: #f4f7f6; }
-        body { font-family: sans-serif; margin: 0; background: var(--bg); padding-bottom: 70px; }
-        header { background: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .tabs { display: flex; gap: 20px; flex-grow: 1; justify-content: center; }
+        :root { --primary: #10b981; --bg: #f3f4f6; }
+        body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); padding-bottom: 80px; }
+        header { background: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .tabs { display: flex; gap: 20px; }
         .tab { cursor: pointer; padding: 5px 10px; color: #666; font-weight: bold; }
-        .tab.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
-        #content-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; padding: 10px; }
-        .card { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .card img { width: 100%; height: 160px; object-fit: cover; background: #eee; }
-        .card-info { padding: 8px; }
-        .card-title { font-size: 14px; font-weight: bold; margin-bottom: 4px; }
-        .card-author { font-size: 11px; color: #999; }
-        .fab { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #10b981; color: white; border: none; border-radius: 50px; padding: 12px 25px; font-size: 16px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 99; }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-content { background: white; padding: 25px; border-radius: 15px; width: 85%; max-width: 400px; }
-        input, textarea, select { width: 100%; margin: 8px 0; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
-        button { flex: 1; padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
+        .tab.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+        #content-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; padding: 12px; }
+        .card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); transition: 0.3s; }
+        .card:active { transform: scale(0.98); }
+        .card img { width: 100%; height: 180px; object-fit: cover; background: #e5e7eb; }
+        .card-info { padding: 10px; }
+        .card-title { font-size: 15px; font-weight: bold; color: #1f2937; margin-bottom: 4px; }
+        .card-author { font-size: 12px; color: #9ca3af; }
+        .fab { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); background: var(--primary); color: white; border: none; border-radius: 50px; padding: 14px 30px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4); z-index: 99; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal-content { background: white; padding: 24px; border-radius: 20px; width: 85%; max-width: 380px; }
+        input, textarea, select { width: 100%; margin: 10px 0; padding: 12px; border: 1px solid #e5e7eb; border-radius: 10px; font-size: 14px; outline: none; }
+        input:focus { border-color: var(--primary); }
+        .btn-group { display: flex; gap: 12px; margin-top: 20px; }
+        button { flex: 1; padding: 12px; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; }
         .btn-main { background: var(--primary); color: white; }
+        .btn-cancel { background: #f3f4f6; color: #4b5563; }
+        #loading { text-align: center; padding: 50px; color: #9ca3af; }
     </style>
 </head>
 <body>
 
 <header>
-    <div style="font-weight: bold; color: var(--primary);">🥣 社交食谱</div>
+    <div style="font-size: 18px; font-weight: 900; color: var(--primary);">🥣 社交食谱</div>
     <div class="tabs">
         <div class="tab active" id="tab-recipe" onclick="switchTab('recipe')">食谱</div>
         <div class="tab" id="tab-moment" onclick="switchTab('moment')">瞬间</div>
     </div>
-    <div id="user-status" style="font-size: 12px; color: #666; cursor: pointer;" onclick="openAuth()">未登录</div>
+    <div id="user-status" style="font-size: 12px; color: #374151; background: #ecfdf5; padding: 4px 8px; border-radius: 6px; cursor: pointer;" onclick="openAuth()">未登录</div>
 </header>
 
 <div id="content-grid"></div>
 
-<button class="fab" onclick="openPost()">+ 分享美食</button>
-
-<div id="auth-modal" class="modal">
-    <div class="modal-content">
-        <h3 id="auth-title">新厨师注册</h3>
-        <input type="text" id="auth-user" placeholder="输入昵称 (如: 小喵喵)">
-        <input type="password" id="auth-pwd" placeholder="设置密码">
-        <div class="btn-group">
-            <button class="btn-main" id="auth-btn" onclick="handleAuth()">确定</button>
-            <button onclick="closeAuth()">取消</button>
-        </div>
-        <p style="font-size: 12px; text-align: center; margin-top: 10px;">
-            <a href="javascript:void(0)" onclick="toggleAuthMode()" id="auth-toggle-text" style="color: var(--primary)">已有账号？去登录</a>
-        </p>
-    </div>
-</div>
-
-<div id="post-modal" class="modal">
-    <div class="modal-content">
-        <h3>分享你的美味</h3>
-        <select id="post-type">
-            <option value="recipe">发布到 [食谱]</option>
-            <option value="moment">发布到 [瞬间]</option>
-        </select>
-        <input type="text" id="in-title" placeholder="给美味起个名字">
-        <textarea id="in-notes" placeholder="分享一下心得吧..." rows="3"></textarea>
-        <input type="file" id="in-file" accept="image/*">
-        <div class="btn-group">
-            <button class="btn-main" id="pub-btn" onclick="handlePublish()">立即发布</button>
-            <button onclick="closePost()">返回</button>
-        </div>
-    </div>
-</div>
-
-<script>
-    // --- 配置区 ---
-    // URL 根据 image_293a36.png 填入
-    const SB_URL = "https://kmsbrisiajtykflnskpj.supabase.co"; 
-    
-    // [!!!关键!!!] 这里的 Key 依然是带省略号的，请手动去 Supabase 页面
-    // 点击你在 image_29363a.png 中画红箭头指着的那个“复制”图标，然后粘贴到这里
-    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imttc2JyaXNpYWp0eWtmbG5za3BqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwODM2NzIsImV4cCI6MjA4NzY1OTY3Mn0.e8-qaJpmrGVc_GcWVEBHEUHWWiJ40Ax5BMyWTZsGqbE"; 
-
-    const _client = supabase.createClient(SB_URL, SB_KEY);
-
-    let currentUser = null;
-    let isSignUp = true;
-    let currentView = 'recipe';
-
-    // 修复：处理中文名注册报错
-    async function handleAuth() {
-        const user = document.getElementById('auth-user').value.trim();
-        const pwd = document.getElementById('auth-pwd').value.trim();
-        if (user.length < 2) return alert("名字太短啦");
-
-        // 将中文转为安全邮箱格式
-        const safeEmail = btoa(encodeURIComponent(user)).replace(/=/g, '').toLowerCase() + "@rose.com";
-
-        try {
-            if (isSignUp) {
-                const { error } = await _client.auth.signUp({ 
-                    email: safeEmail, 
-                    password: pwd, 
-                    options: { data: { display_name: user } } 
-                });
-                if (error) throw error;
-                alert("注册成功！请切换到登录模式进入");
-                toggleAuthMode();
-            } else {
-                const { error, data } = await _client.auth.signInWithPassword({ email: safeEmail, password: pwd });
-                if (error) throw new Error("名字或密码不对哦");
-                currentUser = data.user;
-                document.getElementById('user-status').innerText = `已登录: ${user}`;
-                closeAuth();
-                fetchData();
-            }
-        } catch (e) { alert("操作失败: " + e.message); }
-    }
-
-    // 修复：处理图片路径包含中文导致的 Invalid Key 报错
-    async function handlePublish() {
-        if (!currentUser) return openAuth();
-        const title = document.getElementById('in-title').value.trim();
-        const notes = document.getElementById('in-notes').value.trim();
-        const type = document.getElementById('post-type').value;
-        const file = document.getElementById('in-file').files[0];
-        const btn = document.getElementById('pub-btn');
-
-        if (!title || !file) return alert("标题和照片都不能少哦");
-
-        btn.disabled = true; btn.innerText = "正在飞往云端...";
-
-        try {
-            // 将文件名规范化为时间戳，解决路径非法问题
-            const fileExt = file.name.split('.').pop();
-            const filePath = `public/${Date.now()}.${fileExt}`;
-
-            const { error: upErr } = await _client.storage.from('recipe-images').upload(filePath, file);
-            if (upErr) throw upErr;
-
-            const { data: urlData } = _client.storage.from('recipe-images').getPublicUrl(filePath);
-            
-            const { error: dbErr } = await _client.from('recipes').insert([{
-                title, notes, image_url: urlData.publicUrl, type,
-                author: currentUser.user_metadata.display_name || "神秘厨师",
-                created_by: currentUser.id
-            }]);
-
-            if (dbErr) throw dbErr;
-            alert("大功告成！已同步到分享区");
-            closePost();
-            fetchData();
-        } catch (e) { alert("发布失败: " + e.message); }
-        finally { btn.disabled = false; btn.innerText = "立即发布"; }
-    }
-
-    async function fetchData() {
-        const grid = document.getElementById('content-grid');
-        grid.innerHTML = "<p style='text-align:center;color:#999;'>正在加载...</p>";
-        try {
-            const { data, error } = await _client.from('recipes')
-                .select('*')
-                .eq('type', currentView)
-                .order('created_at', { ascending: false });
-            if (error) throw error;
-            grid.innerHTML = data.length ? "" : "<p style='text-align:center;padding-top:50px;color:#999;'>空空如也，快去发布吧！</p>";
-            data.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `<img src="${item.image_url}"><div class="card-info"><div class="card-title">${item.title}</div><div class="card-author">By ${item.author}</div></div>`;
-                grid.appendChild(card);
-            });
-        } catch (e) { grid.innerHTML = "数据同步暂时离线，请检查 API 配置"; }
-    }
-
-    function switchTab(view) {
-        currentView = view;
-        document.getElementById('tab-recipe').classList.toggle('active', view === 'recipe');
-        document.getElementById('tab-moment').classList.toggle('active', view === 'moment');
-        fetchData();
-    }
-
-    function openAuth() { document.getElementById('auth-modal').style.display = 'flex'; }
-    function closeAuth() { document.getElementById('auth-modal').style.display = 'none'; }
-    function toggleAuthMode() {
-        isSignUp = !isSignUp;
-        document.getElementById('auth-title').innerText = isSignUp ? "新厨师注册" : "欢迎回来";
-        document.getElementById('auth-toggle-text').innerText = isSignUp ? "已有账号？去登录" : "没账号？去注册";
-    }
-    function openPost() { if(!currentUser) return openAuth(); document.getElementById('post-modal').style.display = 'flex'; }
-    function closePost() { document.getElementById('post-modal').style.display = 'none'; }
-
-    fetchData();
-</script>
-</body>
-</html>
+<button class="fab" onclick="openPost()">
