@@ -130,3 +130,69 @@
 
         if (!title || !file) return alert("标题和照片都不能少哦");
 
+        btn.disabled = true; btn.innerText = "正在飞往云端...";
+
+        try {
+            // 将文件名规范化为时间戳，解决路径非法问题
+            const fileExt = file.name.split('.').pop();
+            const filePath = `public/${Date.now()}.${fileExt}`;
+
+            const { error: upErr } = await _client.storage.from('recipe-images').upload(filePath, file);
+            if (upErr) throw upErr;
+
+            const { data: urlData } = _client.storage.from('recipe-images').getPublicUrl(filePath);
+            
+            const { error: dbErr } = await _client.from('recipes').insert([{
+                title, notes, image_url: urlData.publicUrl, type,
+                author: currentUser.user_metadata.display_name || "神秘厨师",
+                created_by: currentUser.id
+            }]);
+
+            if (dbErr) throw dbErr;
+            alert("大功告成！已同步到分享区");
+            closePost();
+            fetchData();
+        } catch (e) { alert("发布失败: " + e.message); }
+        finally { btn.disabled = false; btn.innerText = "立即发布"; }
+    }
+
+    async function fetchData() {
+        const grid = document.getElementById('content-grid');
+        grid.innerHTML = "<p style='text-align:center;color:#999;'>正在加载...</p>";
+        try {
+            const { data, error } = await _client.from('recipes')
+                .select('*')
+                .eq('type', currentView)
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            grid.innerHTML = data.length ? "" : "<p style='text-align:center;padding-top:50px;color:#999;'>空空如也，快去发布吧！</p>";
+            data.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `<img src="${item.image_url}"><div class="card-info"><div class="card-title">${item.title}</div><div class="card-author">By ${item.author}</div></div>`;
+                grid.appendChild(card);
+            });
+        } catch (e) { grid.innerHTML = "数据同步暂时离线，请检查 API 配置"; }
+    }
+
+    function switchTab(view) {
+        currentView = view;
+        document.getElementById('tab-recipe').classList.toggle('active', view === 'recipe');
+        document.getElementById('tab-moment').classList.toggle('active', view === 'moment');
+        fetchData();
+    }
+
+    function openAuth() { document.getElementById('auth-modal').style.display = 'flex'; }
+    function closeAuth() { document.getElementById('auth-modal').style.display = 'none'; }
+    function toggleAuthMode() {
+        isSignUp = !isSignUp;
+        document.getElementById('auth-title').innerText = isSignUp ? "新厨师注册" : "欢迎回来";
+        document.getElementById('auth-toggle-text').innerText = isSignUp ? "已有账号？去登录" : "没账号？去注册";
+    }
+    function openPost() { if(!currentUser) return openAuth(); document.getElementById('post-modal').style.display = 'flex'; }
+    function closePost() { document.getElementById('post-modal').style.display = 'none'; }
+
+    fetchData();
+</script>
+</body>
+</html>
