@@ -257,9 +257,10 @@
             }
             console.log("当前用户ID:", currentUser.id);
 
-            const item = allData.find(i => i.id === id);
+            // 兼容id的字符串/数字类型，找到对应条目
+            const item = allData.find(i => i.id == id);
             if (!item) {
-                console.log("点赞失败：未找到ID为", id, "的条目");
+                console.log("点赞失败：未找到ID为", id, "的条目，当前所有条目ID:", allData.map(i => i.id));
                 return alert("未找到该菜谱");
             }
             console.log("找到的菜谱条目:", item);
