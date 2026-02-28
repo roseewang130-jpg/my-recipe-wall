@@ -192,8 +192,8 @@
         function renderContent() {
             // 渲染菜谱区 (新增模糊搜索过滤)
             const recipes = allData.filter(i => {
-                // 先过滤类型为菜谱的内容
-                if (!i.type || i.type !== 'recipe') return false;
+                // 先过滤类型为菜谱的内容：只保留type为recipe或者没有type的内容
+                if (i.type && i.type !== 'recipe') return false;
                 // 搜索词为空时直接显示
                 if (!searchTerm) return true;
                 // 模糊匹配标题、烹饪心得、作者
@@ -204,7 +204,7 @@
             });
             
             document.getElementById('recipe-list').innerHTML = recipes.map(i => {
-                const likesArr = i.likes || [];
+                const likesArr = Array.isArray(i.likes) ? i.likes : (i.likes ? JSON.parse(i.likes) : []);
                 const isLiked = currentUser && likesArr.includes(currentUser.id);
                 return `
                 <div class="recipe-card" onclick="showDetail('${i.id}')">
@@ -231,7 +231,7 @@
             // 渲染瞬间区
             const moments = allData.filter(i => i.type === 'moment');
             document.getElementById('moment-grid').innerHTML = moments.map(i => {
-                const likesArr = i.likes || [];
+                const likesArr = Array.isArray(i.likes) ? i.likes : (i.likes ? JSON.parse(i.likes) : []);
                 const isLiked = currentUser && likesArr.includes(currentUser.id);
                 return `
                 <div class="relative rounded-[24px] overflow-hidden aspect-[3/4] bg-slate-100 shadow-md group" onclick="showDetail('${i.id}')">
@@ -251,14 +251,41 @@
         // 点赞逻辑
         async function handleLike(e, id) {
             e.stopPropagation(); // 阻止触发卡片的详情弹窗
-            if (!currentUser) return showModal('modal-auth'); // 未登录先弹登录
+            if (!currentUser) {
+                console.log("点赞失败：用户未登录");
+                return showModal('modal-auth'); // 未登录先弹登录
+            }
+            console.log("当前用户ID:", currentUser.id);
 
             const item = allData.find(i => i.id === id);
-            if (!item) return;
+            if (!item) {
+                console.log("点赞失败：未找到ID为", id, "的条目");
+                return alert("未找到该菜谱");
+            }
+            console.log("找到的菜谱条目:", item);
 
-            // 获取当前的 likes 数组，如果没有则默认为空
-            let currentLikes = item.likes || [];
+            let currentLikes;
+            try {
+                // 处理likes字段的各种情况：数组、JSON字符串、null/undefined
+                if (Array.isArray(item.likes)) {
+                    currentLikes = [...item.likes]; // 复制数组避免修改原数据
+                } else if (item.likes && typeof item.likes === 'string') {
+                    currentLikes = JSON.parse(item.likes);
+                    // 确保解析后是数组
+                    if (!Array.isArray(currentLikes)) {
+                        currentLikes = [];
+                    }
+                } else {
+                    currentLikes = [];
+                }
+            } catch (err) {
+                console.log("解析点赞数据出错:", err);
+                currentLikes = [];
+            }
+            console.log("当前点赞数组:", currentLikes);
+
             const hasLiked = currentLikes.includes(currentUser.id);
+            console.log("用户是否已点赞:", hasLiked);
 
             // 切换点赞状态
             if (hasLiked) {
@@ -266,16 +293,25 @@
             } else {
                 currentLikes.push(currentUser.id);
             }
+            console.log("更新后的点赞数组:", currentLikes);
 
             // 先在前端更新 UI，让点击反馈更迅速
             item.likes = currentLikes;
             renderContent();
 
-            // 同步到数据库
+            // 同步到数据库，将数组转为JSON字符串兼容不同字段类型
             try {
-                const { error } = await _client.from('recipes').update({ likes: currentLikes }).eq('id', id);
-                if (error) throw error;
+                const { data, error } = await _client.from('recipes')
+                    .update({ likes: JSON.stringify(currentLikes) })
+                    .eq('id', id)
+                    .select(); // 加上select获取更新后的数据
+                if (error) {
+                    console.log("数据库更新错误详情:", error);
+                    throw error;
+                }
+                console.log("数据库更新成功，返回数据:", data);
             } catch (err) {
+                console.error("点赞同步失败详情:", err);
                 alert("点赞同步失败: " + err.message);
                 fetchData(); // 失败则重新拉取数据回滚状态
             }
