@@ -3,195 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>zizi食谱 - 修复版</title>
+    <title>zizi食谱 - 全功能稳定版</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .hidden { display: none !important; }
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
+        
         .recipe-card { 
-            position: relative; display: flex; gap: 16px; background: rgba(255,255,255,0.8); 
-            backdrop-filter: blur(10px); padding: 20px; border-radius: 24px; 
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); margin-bottom: 16px; 
-            border: 1px solid rgba(255,255,255,0.5); cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative; display: flex; gap: 16px; background: white; 
+            padding: 20px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
+            margin-bottom: 16px; cursor: pointer; transition: transform 0.2s;
         }
-        .recipe-card:hover { transform: translateY(-5px); }
-        .recipe-thumb { width: 100px; height: 100px; border-radius: 16px; object-fit: cover; flex-shrink: 0; }
-        .like-btn-active { animation: heart-burst 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes heart-burst { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.4); } }
-        #search-input { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(16, 185, 129, 0.2); padding-left: 3rem; }
-        input, textarea, select { width: 100%; padding: 14px; border: 1px solid #eef2f6; border-radius: 16px; margin-bottom: 12px; outline: none; transition: all 0.2s; }
-        .modal-overlay { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px); }
+        .recipe-card:active { transform: scale(0.98); }
+        .recipe-thumb { width: 100px; height: 100px; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
+        
+        /* 点赞动画 */
+        .like-active { animation: heart-beat 0.3s ease-in-out; color: #ef4444 !important; }
+        @keyframes heart-beat { 50% { transform: scale(1.3); } }
+
+        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 12px; outline: none; }
+        .modal-overlay { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
     </style>
 </head>
 
-<body class="bg-[#fcfcfc] min-h-screen pb-28 text-slate-800">
+<body class="bg-[#fafafa] min-h-screen pb-24 text-gray-900">
     <div class="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden pointer-events-none">
-        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-100/40 rounded-full blur-[120px]"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-orange-100/40 rounded-full blur-[120px]"></div>
+        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-100/50 rounded-full blur-[100px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-orange-100/50 rounded-full blur-[100px]"></div>
     </div>
-
-    <header class="sticky top-0 z-30 bg-white/70 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex justify-between items-center">
-        <div class="flex items-center gap-2">
-            <span class="text-2xl">🥘</span>
-            <h1 class="text-xl font-black bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">zizi食谱</h1>
-        </div>
-        <button id="header-auth-btn" class="text-xs font-bold bg-slate-800 text-white px-5 py-2.5 rounded-full shadow-lg">同步中...</button>
-    </header>
-
-    <main id="view-home" class="p-6 max-w-2xl mx-auto">
-        <div class="relative mb-8 group">
-            <span class="absolute left-4 top-1/2 -translate-y-1/2 opacity-40">🔍</span>
-            <input type="text" id="search-input" placeholder="搜索菜谱名或心得..." oninput="handleSearch()" class="mb-0">
-        </div>
-        <h2 class="text-2xl font-black mb-6">今日推荐</h2>
-        <div id="recipe-list" class="space-y-4"></div>
-    </main>
-
-    <main id="view-moment" class="p-4 max-w-2xl mx-auto hidden"><div id="moment-grid" class="grid grid-cols-2 gap-4"></div></main>
-    <main id="view-lucky" class="p-6 max-w-md mx-auto hidden flex flex-col items-center">
-        <div id="lucky-box" class="text-8xl mb-8 cursor-pointer" onclick="startDraw()">🔮</div>
-        <div id="lucky-result" class="w-full hidden"><div id="lucky-card-container"></div></div>
-    </main>
-    <main id="view-profile" class="p-6 max-w-xl mx-auto hidden">
-        <div class="bg-white rounded-[32px] p-10 text-center shadow-xl">
-            <div class="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center text-3xl mx-auto mb-4" id="p-avatar">👤</div>
-            <h2 class="text-2xl font-black" id="p-name">游客</h2>
-            <p class="text-slate-400 mb-6" id="p-email">尚未登录</p>
-            <button id="p-action-btn" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold">登录 / 注册</button>
-        </div>
-    </main>
-
-    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-lg px-6 py-4 rounded-full flex items-center justify-between w-[90%] max-w-md z-40 shadow-2xl">
-        <button onclick="switchView('home')" class="text-2xl">🏠</button>
-        <button onclick="switchView('moment')" class="text-2xl">📸</button>
-        <button id="nav-post" class="bg-emerald-500 text-white w-12 h-12 rounded-full font-bold text-2xl -mt-8">+</button>
-        <button onclick="switchView('lucky')" class="text-2xl">🎲</button>
-        <button onclick="switchView('profile')" class="text-2xl">👤</button>
-    </nav>
-
-    <div id="modal-auth" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-sm rounded-[32px] p-8">
-            <h2 id="auth-title" class="text-2xl font-black mb-6 text-center">欢迎回来</h2>
-            <input id="auth-user" type="text" placeholder="名字">
-            <input id="auth-pwd" type="password" placeholder="密码">
-            <button id="auth-submit" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold">确定</button>
-            <button id="auth-toggle" class="w-full mt-4 text-xs text-slate-400 text-center block">切换注册/登录</button>
-            <button onclick="hideModal('modal-auth')" class="w-full mt-2 text-xs text-slate-300">取消</button>
-        </div>
-    </div>
-
-    <script>
-        const CONF = {
-            url: "https://kmsbrisiajtykflnskpj.supabase.co",
-            key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imttc2JyaXNpYWp0eWtmbG5za3BqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwODM2NzIsImV4cCI6MjA4NzY1OTY3Mn0.e8-qaJpmrGVc_GcWVEBHEUHWWiJ40Ax5BMyWTZsGqbE"
-        };
-        const _client = supabase.createClient(CONF.url, CONF.key);
-        let currentUser = null, allData = [], searchKeyword = "", isSignUp = false;
-
-        // 监听登录状态变化 (修复点1：自动刷新 UI)
-        _client.auth.onAuthStateChange((event, session) => {
-            currentUser = session?.user || null;
-            console.log("Auth Event:", event, currentUser);
-            updateUI();
-            fetchData();
-        });
-
-        async function fetchData() {
-            const { data, error } = await _client.from('recipes').select('*').order('created_at', { ascending: false });
-            if (!error) { allData = data || []; renderContent(); }
-        }
-
-        function renderContent() {
-            const filtered = allData.filter(i => (i.title+i.notes).toLowerCase().includes(searchKeyword));
-            
-            // 菜谱区
-            const recipes = filtered.filter(i => !i.type || i.type === 'recipe');
-            document.getElementById('recipe-list').innerHTML = recipes.map(i => {
-                const likes = Array.isArray(i.likes) ? i.likes : [];
-                const isLiked = currentUser && likes.includes(currentUser.id);
-                return `
-                <div class="recipe-card" onclick="showDetail('${i.id}')">
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-black text-lg truncate">${i.title}</h3>
-                        <p class="text-xs text-slate-400 line-clamp-2">${i.notes || ''}</p>
-                        <div class="flex items-center justify-between mt-4">
-                            <span class="text-[10px] text-emerald-600 font-bold">@${i.author}</span>
-                            <button onclick="handleLike(event, '${i.id}')" class="flex items-center gap-1 px-2 py-1 rounded-full ${isLiked ? 'text-red-500' : 'text-slate-300'}">
-                                <span class="${isLiked ? 'like-btn-active' : ''}">${isLiked ? '❤️' : '🤍'}</span>
-                                <span class="text-xs font-bold">${likes.length || ''}</span>
-                            </button>
-                        </div>
-                    </div>
-                    <img src="${i.image_url}" class="recipe-thumb">
-                </div>`;
-            }).join('');
-        }
-
-        // 修复点2：点赞逻辑确保写入数据库
-        async function handleLike(e, id) {
-            e.stopPropagation();
-            if (!currentUser) return showModal('modal-auth');
-
-            const item = allData.find(i => i.id === id);
-            let likes = Array.isArray(item.likes) ? [...item.likes] : [];
-            const idx = likes.indexOf(currentUser.id);
-
-            if (idx > -1) likes.splice(idx, 1);
-            else likes.push(currentUser.id);
-
-            // 乐观更新 UI
-            item.likes = likes;
-            renderContent();
-
-            // 写入数据库
-            const { error } = await _client.from('recipes').update({ likes }).eq('id', id);
-            if (error) { console.error(error); fetchData(); }
-        }
-
-        function handleSearch() {
-            searchKeyword = document.getElementById('search-input').value.toLowerCase();
-            renderContent();
-        }
-
-        function updateUI() {
-            const btn = document.getElementById('header-auth-btn');
-            const pName = document.getElementById('p-name'), pEmail = document.getElementById('p-email'), pAvatar = document.getElementById('p-avatar');
-            
-            if (currentUser) {
-                const name = currentUser.email.split('@')[0];
-                btn.innerText = `退出 (${name})`;
-                btn.onclick = () => _client.auth.signOut();
-                if(pName) pName.innerText = name;
-                if(pEmail) pEmail.innerText = currentUser.email;
-                if(pAvatar) pAvatar.innerText = name[0].toUpperCase();
-            } else {
-                btn.innerText = "登录/注册";
-                btn.onclick = () => showModal('modal-auth');
-                if(pName) pName.innerText = "游客";
-                if(pEmail) pEmail.innerText = "尚未登录";
-                if(pAvatar) pAvatar.innerText = "👤";
-            }
-        }
-
-        async function handleAuth() {
-            const u = document.getElementById('auth-user').value, p = document.getElementById('auth-pwd').value;
-            const email = `${u}@rose.com`;
-            const { error } = isSignUp ? await _client.auth.signUp({ email, password: p }) : await _client.auth.signInWithPassword({ email, password: p });
-            if (error) alert("操作失败: " + error.message);
-            else hideModal('modal-auth');
-        }
-
-        // 基础功能函数
-        function switchView(v) { ['home', 'moment', 'lucky', 'profile'].forEach(id => document.getElementById(`view-${id}`).classList.toggle('hidden', id !== v)); }
-        function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
-        function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
-
-        document.getElementById('auth-submit').onclick = handleAuth;
-        document.getElementById('nav-post').onclick = () => currentUser ? showModal('modal-post') : showModal('modal-auth');
-        document.getElementById('auth-toggle').onclick = () => { isSignUp = !isSignUp; document.getElementById('auth-title').innerText = isSignUp ? "注册账号" : "欢迎回来"; };
-    </script>
-</body>
-</html>
