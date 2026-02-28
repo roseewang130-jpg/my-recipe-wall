@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>zizi食谱</title>
+    <title>zizi食谱 - 旗舰搜索版</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <style>
-        
         .hidden { display: none !important; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
@@ -60,45 +60,7 @@
 </head>
 
 <body class="bg-[#fcfcfc] min-h-screen pb-28 text-slate-800">
-<body class="bg-[#fcfcfc] min-h-screen pb-28 text-slate-800">
-    <div class="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden pointer-events-none">
-        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-100/40 rounded-full blur-[120px]"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-orange-100/40 rounded-full blur-[120px]"></div>
-    </div>
 
-    <header class="...">
-        </header>
-
-    ```
-
-#### 3. 强制同步登录状态的 JS 补丁
-在你的 `<script>` 标签最后，确保 `onAuthStateChange` 逻辑包含显式的 UI 更新指令：
-
-```javascript
-// 确保这一段逻辑是这样的
-_client.auth.onAuthStateChange((event, session) => {
-    currentUser = session?.user || null;
-    console.log("当前用户状态:", currentUser);
-    
-    // 关键：状态改变时立即刷新 UI 和 数据
-    updateUI(); 
-    fetchData(); 
-});
-
-function updateUI() {
-    const authBtn = document.getElementById('header-auth-btn');
-    const pName = document.getElementById('p-name');
-    
-    if (currentUser) {
-        const name = currentUser.email.split('@')[0];
-        if(authBtn) authBtn.innerText = `退出 (${name})`;
-        if(pName) pName.innerText = name;
-        // 确保主页的“未登录”占位符消失
-    } else {
-        if(authBtn) authBtn.innerText = "登录/注册";
-        if(pName) pName.innerText = "游客厨师";
-    }
-}
     <div class="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden pointer-events-none">
         <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-100/40 rounded-full blur-[120px]"></div>
         <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-orange-100/40 rounded-full blur-[120px]"></div>
@@ -409,4 +371,3 @@ function updateUI() {
     </script>
 </body>
 </html>
-
