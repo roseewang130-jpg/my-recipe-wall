@@ -3,130 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>zizi食谱 - 修复版</title>
+    <title>zizi食谱 - 完美运行版</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .hidden { display: none !important; }
-        .nav-btn { font-size: 1.5rem; transition: transform 0.2s; cursor: pointer; }
-        .nav-btn:active { transform: scale(0.8); }
-        .card { background: white; border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .recipe-card { display: flex; gap: 16px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 16px; border: 1px solid #f3f4f6; }
+        .recipe-thumb { width: 100px; height: 100px; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
+        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 12px; outline: none; background: #f9fafb; }
+        .nav-active { color: #10b981; font-weight: 900; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900 min-h-screen pb-24">
+<body class="bg-[#fafafa] min-h-screen pb-24 text-gray-900">
 
-    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b p-4 flex justify-between items-center">
+    <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b px-6 py-4 flex justify-between items-center">
         <h1 class="text-xl font-black text-emerald-600">🥘 zizi食谱</h1>
-        <div id="user-status" class="text-xs font-bold text-gray-400">检查登录中...</div>
+        <button id="header-auth-btn" class="text-xs font-bold bg-emerald-600 text-white px-4 py-2 rounded-full shadow-md">
+            登录/注册
+        </button>
     </header>
 
-    <main id="view-home" class="p-4 max-w-xl mx-auto">
-        <h2 class="text-2xl font-black mb-4">推荐菜谱</h2>
-        <div id="recipe-list" class="space-y-4"></div>
+    <main id="view-home" class="p-6 max-w-2xl mx-auto">
+        <h2 class="text-2xl font-black mb-6">推荐菜谱</h2>
+        <div id="recipe-list" class="space-y-4">
+            <div class="text-center py-20 text-gray-300">正在同步云端美食...</div>
+        </div>
     </main>
 
-    <main id="view-moment" class="p-4 max-w-xl mx-auto hidden">
-        <h2 class="text-2xl font-black mb-4">美食瞬间</h2>
+    <main id="view-moment" class="p-4 max-w-2xl mx-auto hidden">
+        <h2 class="text-2xl font-black mb-6">美食瞬间</h2>
         <div id="moment-grid" class="grid grid-cols-2 gap-3"></div>
     </main>
 
     <main id="view-profile" class="p-6 max-w-xl mx-auto hidden">
         <div class="bg-white rounded-3xl p-8 text-center shadow-xl border border-gray-100">
-            <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-4" id="avatar">👤</div>
-            <h2 class="text-xl font-black mb-2" id="profile-name">游客</h2>
+            <div class="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">👤</div>
+            <h2 class="text-xl font-black mb-1" id="profile-name">游客</h2>
             <p class="text-gray-400 text-sm mb-6" id="profile-email">登录后开启美食之旅</p>
-            <button id="auth-action-btn" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black shadow-lg shadow-emerald-200">去登录 / 注册</button>
+            <button id="profile-action-btn" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black shadow-lg">去登录 / 注册</button>
         </div>
     </main>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t p-4 flex justify-around items-center z-40">
-        <div id="to-home" class="nav-btn">🏠</div>
-        <div id="to-moment" class="nav-btn">📸</div>
-        <div id="to-post" class="bg-emerald-500 text-white w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg -mt-10 border-4 border-white">➕</div>
-        <div id="to-profile" class="nav-btn">👤</div>
+    <nav class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t p-4 flex justify-around items-center shadow-2xl z-40">
+        <button id="nav-home" class="text-2xl">🏠</button>
+        <button id="nav-moment" class="text-2xl">📸</button>
+        <button id="nav-post" class="bg-emerald-500 text-white w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg -mt-10 border-4 border-white active:scale-90 transition-transform">
+            <span class="text-3xl">+</span>
+        </button>
+        <button id="nav-profile" class="text-2xl">👤</button>
     </nav>
 
+    <div id="auth-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-6 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-8">
+            <h2 id="auth-title" class="text-2xl font-black mb-6">欢迎回来</h2>
+            <input id="auth-user" type="text" placeholder="你的名字">
+            <input id="auth-pwd" type="password" placeholder="密码 (至少6位)">
+            <button id="auth-submit-btn" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black">确认</button>
+            <button id="auth-toggle-btn" class="w-full mt-4 text-xs text-gray-400 underline">没有账号？点击注册</button>
+            <button id="auth-close-btn" class="w-full mt-2 text-xs text-gray-300">取消</button>
+        </div>
+    </div>
+
+    <div id="post-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-6 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8">
+            <h2 class="text-xl font-black mb-6">发布美食</h2>
+            <select id="post-type">
+                <option value="recipe">🥘 菜谱区</option>
+                <option value="moment">📸 瞬间区</option>
+            </select>
+            <input id="post-title" type="text" placeholder="给它起个名字">
+            <textarea id="post-notes" placeholder="说点什么吧..." class="h-32 resize-none"></textarea>
+            <input id="post-file" type="file" accept="image/*">
+            <div class="flex gap-4 mt-4">
+                <button id="post-cancel-btn" class="flex-1 py-4 text-gray-400 font-bold">取消</button>
+                <button id="post-submit-btn" class="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black shadow-lg">发布</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // 1. 初始化配置
         const SB_URL = "https://kmsbrisiajtykflnskpj.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imttc2JyaXNpYWp0eWtmbG5za3BqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwODM2NzIsImV4cCI6MjA4NzY1OTY3Mn0.e8-qaJpmrGVc_GcWVEBHEUHWWiJ40Ax5BMyWTZsGqbE";
-        
-        let _sb;
-        let _user = null;
+        const _client = supabase.createClient(SB_URL, SB_KEY);
 
-        // 核心：等页面加载完再绑定按钮，防止“点不动”
-        window.addEventListener('DOMContentLoaded', () => {
-            console.log("App Ready");
-            try {
-                _sb = supabase.createClient(SB_URL, SB_KEY);
-                bindEvents();
-                checkUser();
-            } catch (e) {
-                console.error("Supabase Error:", e);
-                document.getElementById('user-status').innerText = "服务暂时离线";
-            }
+        let currentUser = null;
+        let isSignUpMode = false;
+
+        // 2. 核心：监听登录状态
+        _client.auth.onAuthStateChange((event, session) => {
+            currentUser = session?.user || null;
+            updateAuthUI();
+            fetchData();
         });
 
-        function bindEvents() {
-            // 基础导航切换 (保证就算没网也能点)
-            document.getElementById('to-home').onclick = () => switchView('home');
-            document.getElementById('to-moment').onclick = () => switchView('moment');
-            document.getElementById('to-profile').onclick = () => switchView('profile');
-            
-            // 发布按钮
-            document.getElementById('to-post').onclick = () => {
-                if(!_user) { switchView('profile'); alert("请先登录哦"); }
-                else { /* 显示发布弹窗的逻辑 */ }
-            };
+        // 3. UI 更新逻辑
+        function updateAuthUI() {
+            const hBtn = document.getElementById('header-auth-btn');
+            const pBtn = document.getElementById('profile-action-btn');
+            const pName = document.getElementById('profile-name');
+            const pEmail = document.getElementById('profile-email');
 
-            // 登录/登出按钮
-            document.getElementById('auth-action-btn').onclick = () => {
-                if(_user) handleLogout();
-                else alert("点击顶部登录按钮"); // 这里可以根据你具体的登录弹窗改
-            };
+            if (currentUser) {
+                const name = currentUser.email.split('@')[0];
+                hBtn.innerText = `退出 (${name})`;
+                pName.innerText = name;
+                pEmail.innerText = currentUser.email;
+                pBtn.innerText = "退出登录";
+                pBtn.onclick = () => _client.auth.signOut();
+                hBtn.onclick = () => _client.auth.signOut();
+            } else {
+                hBtn.innerText = "登录/注册";
+                pName.innerText = "游客";
+                pEmail.innerText = "登录后开启美食之旅";
+                pBtn.innerText = "去登录 / 注册";
+                pBtn.onclick = () => showModal('auth-modal');
+                hBtn.onclick = () => showModal('auth-modal');
+            }
         }
 
-        async function checkUser() {
-            const { data: { session } } = await _sb.auth.getSession();
-            _user = session?.user || null;
-            updateUI();
+        // 4. 导航逻辑
+        function switchView(viewName) {
+            ['view-home', 'view-moment', 'view-profile'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', id !== `view-${viewName}`);
+            });
             fetchData();
         }
 
-        function updateUI() {
-            const status = document.getElementById('user-status');
-            const pName = document.getElementById('profile-name');
-            const pEmail = document.getElementById('profile-email');
-            const authBtn = document.getElementById('auth-action-btn');
+        function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-            if(_user) {
-                const name = _user.email.split('@')[0];
-                status.innerText = `你好，${name}`;
-                pName.innerText = name;
-                pEmail.innerText = _user.email;
-                authBtn.innerText = "退出登录";
-                authBtn.classList.replace('bg-emerald-600', 'bg-red-500');
-            } else {
-                status.innerText = "未登录";
-                pName.innerText = "游客";
-                pEmail.innerText = "登录后开启美食之旅";
-                authBtn.innerText = "去登录 / 注册";
-            }
-        }
+        // 5. 事件绑定
+        document.getElementById('nav-home').onclick = () => switchView('home');
+        document.getElementById('nav-moment').onclick = () => switchView('moment');
+        document.getElementById('nav-profile').onclick = () => switchView('profile');
+        document.getElementById('nav-post').onclick = () => currentUser ? showModal('post-modal') : showModal('auth-modal');
+        document.getElementById('auth-close-btn').onclick = () => hideModal('auth-modal');
+        document.getElementById('post-cancel-btn').onclick = () => hideModal('post-modal');
+        
+        document.getElementById('auth-toggle-btn').onclick = () => {
+            isSignUpMode = !isSignUpMode;
+            document.getElementById('auth-title').innerText = isSignUpMode ? "加入新厨师" : "欢迎回来";
+            document.getElementById('auth-toggle-btn').innerText = isSignUpMode ? "已有账号？去登录" : "没有账号？点击注册";
+        };
 
-        function switchView(name) {
-            document.getElementById('view-home').classList.add('hidden');
-            document.getElementById('view-moment').classList.add('hidden');
-            document.getElementById('view-profile').classList.add('hidden');
-            document.getElementById(`view-${name}`).classList.remove('hidden');
-        }
+        // 6. 登录/注册功能
+        document.getElementById('auth-submit-btn').onclick = async () => {
+            const u = document.getElementById('auth-user').value.trim();
+            const p = document.getElementById('auth-pwd').value.trim();
+            if (!u || p.length < 6) return alert("名字必填，密码至少6位");
 
+            const email = `${encodeURIComponent(u)}@zizi.com`; // 统一转为内部邮箱格式
+            try {
+                const { error } = isSignUpMode 
+                    ? await _client.auth.signUp({ email, password: p }) 
+                    : await _client.auth.signInWithPassword({ email, password: p });
+                
+                if (error) throw error;
+                hideModal('auth-modal');
+            } catch (e) { alert(e.message); }
+        };
+
+        // 7. 发布功能 (修复文件名非法报错)
+        document.getElementById('post-submit-btn').onclick = async () => {
+            const title = document.getElementById('post-title').value.trim();
+            const file = document.getElementById('post-file').files[0];
+            const type = document.getElementById('post-type').value;
+            const notes = document.getElementById('post-notes').value.trim();
+
+            if (!title || !file) return alert("请填写标题并选择图片");
+
+            const btn = document.getElementById('post-submit-btn');
+            btn.innerText = "飞往云端..."; btn.disabled = true;
+
+            try {
+                // 修复图 image_277456.png 的 Invalid Key 报错：生成随机且合法的文件名
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Date.now()}_${Math.random().toString(36).slice(-4)}.${fileExt}`;
+                const path = `public/${fileName}`;
+
+                const { error: upErr } = await _client.storage.from('recipe-images').upload(path, file);
+                if (upErr) throw upErr;
+
+                const { data: urlData } = _client.storage.from('recipe-images').getPublicUrl(path);
+                const { error: dbErr } = await _client.from('recipes').insert([{
+                    title, notes, type,
+                    image_url: urlData.publicUrl,
+                    author: currentUser.email.split('@')[0],
+                    created_by: currentUser.id
+                }]);
+
+                if (dbErr) throw dbErr;
+                alert("发布成功！");
+                hideModal('post-modal');
+                location.reload();
+            } catch (e) { alert("发布失败: " + e.message); }
+            finally { btn.innerText = "发布"; btn.disabled = false; }
+        };
+
+        // 8. 数据拉取 (修复看不到旧菜谱问题)
         async function fetchData() {
-            // 数据抓取逻辑保持不变...
-        }
+            const { data, error } = await _client.from('recipes').select('*').order('created_at', { ascending: false });
+            if (error) return console.error(error);
 
-        async function handleLogout() {
-            await _sb.auth.signOut();
-            location.reload();
+            // 渲染菜谱区 (包含没有 type 或 type 为 recipe 的数据)
+            const recipes = data.filter(i => !i.type || i.type === 'recipe');
+            document.getElementById('recipe-list').innerHTML = recipes.length ? recipes.map(i => `
+                <div class="recipe-card">
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-black text-gray-800 text-lg mb-2">${i.title}</h3>
+                        <p class="text-xs text-gray-400 line-clamp-2">${i.notes || ''}</p>
+                        <div class="mt-4"><span class="text-[10px] bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full">@${i.author}</span></div>
+                    </div>
+                    <img src="${i.image_url}" class="recipe-thumb">
+                </div>
+            `).join('') : '<div class="text-center py-20 text-gray-300">暂无菜谱</div>';
+
+            // 渲染瞬间区
+            const moments = data.filter(i => i.type === 'moment');
+            document.getElementById('moment-grid').innerHTML = moments.map(i => `
+                <div class="rounded-2xl overflow-hidden aspect-[3/4] bg-gray-100 shadow-sm">
+                    <img src="${i.image_url}" class="w-full h-full object-cover">
+                </div>
+            `).join('');
         }
     </script>
 </body>
