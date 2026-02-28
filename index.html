@@ -71,6 +71,10 @@
 
     <main id="view-home" class="p-6 max-w-2xl mx-auto">
         <h2 class="text-2xl font-black mb-6 flex items-center gap-2">今日推荐 <span class="text-sm font-normal text-slate-400">Recipes</span></h2>
+        <!-- 新增搜索框 -->
+        <div class="mb-4">
+            <input id="search-input" type="text" placeholder="搜索菜谱、食材或作者..." class="bg-white/80 backdrop-blur-md border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all">
+        </div>
         <div id="recipe-list" class="space-y-4"></div>
     </main>
 
@@ -170,7 +174,7 @@
             key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imttc2JyaXNpYWp0eWtmbG5za3BqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwODM2NzIsImV4cCI6MjA4NzY1OTY3Mn0.e8-qaJpmrGVc_GcWVEBHEUHWWiJ40Ax5BMyWTZsGqbE"
         };
         const _client = supabase.createClient(CONF.url, CONF.key);
-        let currentUser = null, isSignUp = false, allData = [];
+        let currentUser = null, isSignUp = false, allData = [], searchTerm = '';
 
         _client.auth.onAuthStateChange((_, session) => {
             currentUser = session?.user || null;
@@ -186,8 +190,19 @@
         }
 
         function renderContent() {
-            // 渲染菜谱区 (新增点赞按扭)
-            const recipes = allData.filter(i => !i.type || i.type === 'recipe');
+            // 渲染菜谱区 (新增模糊搜索过滤)
+            const recipes = allData.filter(i => {
+                // 先过滤类型为菜谱的内容
+                if (!i.type || i.type !== 'recipe') return false;
+                // 搜索词为空时直接显示
+                if (!searchTerm) return true;
+                // 模糊匹配标题、烹饪心得、作者
+                const titleMatch = i.title.toLowerCase().includes(searchTerm);
+                const notesMatch = i.notes && i.notes.toLowerCase().includes(searchTerm);
+                const authorMatch = i.author && i.author.toLowerCase().includes(searchTerm);
+                return titleMatch || notesMatch || authorMatch;
+            });
+            
             document.getElementById('recipe-list').innerHTML = recipes.map(i => {
                 const likesArr = i.likes || [];
                 const isLiked = currentUser && likesArr.includes(currentUser.id);
@@ -209,9 +224,11 @@
                     </div>
                     <img src="${i.image_url}" class="recipe-thumb bg-slate-50 shadow-inner">
                 </div>
-            `}).join('') || '<div class="text-center py-20 text-slate-300 italic">空空如也，快去发布吧</div>';
+            `}).join('') || (searchTerm ? 
+                '<div class="text-center py-20 text-slate-300 italic">没有找到相关菜谱，换个关键词试试吧</div>' :
+                '<div class="text-center py-20 text-slate-300 italic">空空如也，快去发布吧</div>');
 
-            // 渲染瞬间区 (新增点赞按钮)
+            // 渲染瞬间区
             const moments = allData.filter(i => i.type === 'moment');
             document.getElementById('moment-grid').innerHTML = moments.map(i => {
                 const likesArr = i.likes || [];
@@ -231,7 +248,7 @@
             `}).join('') || '<div class="col-span-2 text-center py-20 text-slate-300 italic">暂无美图</div>';
         }
 
-        // --- 新增：点赞逻辑 ---
+        // 点赞逻辑
         async function handleLike(e, id) {
             e.stopPropagation(); // 阻止触发卡片的详情弹窗
             if (!currentUser) return showModal('modal-auth'); // 未登录先弹登录
@@ -264,7 +281,7 @@
             }
         }
 
-        // 抽签逻辑 (保持不变)
+        // 抽签逻辑
         function startDraw() {
             const recipes = allData.filter(i => !i.type || i.type === 'recipe');
             if (recipes.length === 0) return alert("菜谱库里还没有好吃的，先去发几个吧！");
@@ -299,7 +316,7 @@
             }, 800);
         }
 
-        // 发布逻辑 (增加空likes字段)
+        // 发布逻辑
         async function handlePost() {
             const t = document.getElementById('post-title').value.trim();
             const f = document.getElementById('post-file').files[0];
@@ -391,6 +408,7 @@
         function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
         function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
 
+        // 绑定导航事件
         document.getElementById('nav-home').onclick = () => switchView('home');
         document.getElementById('nav-moment').onclick = () => switchView('moment');
         document.getElementById('nav-lucky').onclick = () => switchView('lucky');
@@ -402,6 +420,12 @@
             isSignUp = !isSignUp;
             document.getElementById('auth-title').innerText = isSignUp ? "加入我们" : "欢迎回来";
         };
+
+        // 绑定搜索事件
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            searchTerm = e.target.value.trim().toLowerCase();
+            renderContent();
+        });
     </script>
 </body>
 </html>
