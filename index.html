@@ -33,3 +33,189 @@
         <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-100/50 rounded-full blur-[100px]"></div>
         <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-orange-100/50 rounded-full blur-[100px]"></div>
     </div>
+
+    <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100 px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+            <span class="text-xl">🥘</span>
+            <h1 class="text-lg font-black text-emerald-600">zizi食谱</h1>
+        </div>
+        <button id="header-auth-btn" class="text-xs font-bold bg-emerald-600 text-white px-4 py-2 rounded-full">登录/注册</button>
+    </header>
+
+    <div class="px-6 pt-6 max-w-2xl mx-auto">
+        <div class="relative">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+            <input type="text" id="search-input" placeholder="模糊搜索菜谱名或心得..." oninput="handleSearch()" class="pl-10 mb-0 shadow-sm border-none bg-white">
+        </div>
+    </div>
+
+    <main id="view-home" class="p-6 max-w-2xl mx-auto">
+        <h2 class="text-xl font-black mb-4">今日推荐</h2>
+        <div id="recipe-list" class="space-y-4"></div>
+    </main>
+
+    <main id="view-moment" class="p-6 max-w-2xl mx-auto hidden">
+        <h2 class="text-xl font-black mb-4 text-center">美食瞬间</h2>
+        <div id="moment-grid" class="grid grid-cols-2 gap-4"></div>
+    </main>
+
+    <main id="view-profile" class="p-6 max-w-xl mx-auto hidden">
+        <div class="bg-white rounded-[32px] p-8 text-center shadow-sm">
+            <div id="p-avatar" class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 font-bold">👤</div>
+            <h2 id="p-name" class="text-xl font-black">游客厨师</h2>
+            <p id="p-email" class="text-gray-400 text-sm mb-6">登录后记录美味生活</p>
+            <button id="p-action-btn" class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold">去登录 / 注册</button>
+        </div>
+    </main>
+
+    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 px-6 py-3 rounded-full flex items-center justify-between w-[90%] max-w-md z-40 shadow-xl">
+        <button onclick="switchView('home')" class="text-xl">🏠</button>
+        <button onclick="switchView('moment')" class="text-xl">📸</button>
+        <button id="nav-post" class="bg-emerald-500 text-white w-12 h-12 rounded-full flex items-center justify-center -mt-10 border-4 border-gray-900"><span class="text-2xl">+</span></button>
+        <button onclick="alert('抽签功能建设中')" class="text-xl">🎲</button>
+        <button onclick="switchView('profile')" class="text-xl">👤</button>
+    </nav>
+
+    <div id="modal-auth" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-8">
+            <h2 id="auth-title" class="text-xl font-black mb-6 text-center">欢迎回来</h2>
+            <input id="auth-user" type="text" placeholder="你的名字">
+            <input id="auth-pwd" type="password" placeholder="密码 (至少6位)">
+            <button id="auth-submit" class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold mb-4">确认</button>
+            <button id="auth-toggle" class="w-full text-xs text-gray-400 underline text-center">没有账号？点击注册</button>
+            <button onclick="hideModal('modal-auth')" class="w-full mt-4 text-xs text-gray-300">取消</button>
+        </div>
+    </div>
+
+    <script>
+        const CONF = {
+            url: "https://kmsbrisiajtykflnskpj.supabase.co",
+            key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imttc2JyaXNpYWp0eWtmbG5za3BqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwODM2NzIsImV4cCI6MjA4NzY1OTY3Mn0.e8-qaJpmrGVc_GcWVEBHEUHWWiJ40Ax5BMyWTZsGqbE"
+        };
+        const _client = supabase.createClient(CONF.url, CONF.key);
+        let currentUser = null, allData = [], searchKeyword = "", isSignUp = false;
+
+        // 初始化
+        _client.auth.onAuthStateChange((_, session) => {
+            currentUser = session?.user || null;
+            updateUI();
+            fetchData();
+        });
+
+        async function fetchData() {
+            const { data, error } = await _client.from('recipes').select('*').order('created_at', { ascending: false });
+            if (!error) { allData = data; renderContent(); }
+        }
+
+        function renderContent() {
+            const filtered = allData.filter(i => 
+                (i.title + i.notes).toLowerCase().includes(searchKeyword.toLowerCase())
+            );
+
+            // 渲染菜谱
+            const recipes = filtered.filter(i => !i.type || i.type === 'recipe');
+            document.getElementById('recipe-list').innerHTML = recipes.map(i => {
+                const likes = Array.isArray(i.likes) ? i.likes : [];
+                const isLiked = currentUser && likes.includes(currentUser.id);
+                return `
+                <div class="recipe-card">
+                    <div class="flex-1 min-w-0" onclick="alert('详情功能开发中')">
+                        <h3 class="font-bold text-lg truncate">${i.title}</h3>
+                        <p class="text-xs text-gray-400 line-clamp-2 mt-1">${i.notes || ''}</p>
+                        <div class="flex items-center justify-between mt-4">
+                            <span class="text-[10px] font-bold text-emerald-600 uppercase">@${i.author}</span>
+                            <button onclick="handleLike(event, '${i.id}')" class="flex items-center gap-1 ${isLiked ? 'like-active' : 'text-gray-300'}">
+                                <span>${isLiked ? '❤️' : '🤍'}</span>
+                                <span class="text-xs font-bold text-gray-400">${likes.length}</span>
+                            </button>
+                        </div>
+                    </div>
+                    <img src="${i.image_url}" class="recipe-thumb">
+                </div>`;
+            }).join('') || '<p class="text-center text-gray-300 py-10">没搜到相关菜谱...</p>';
+
+            // 渲染瞬间
+            const moments = filtered.filter(i => i.type === 'moment');
+            document.getElementById('moment-grid').innerHTML = moments.map(i => `
+                <div class="relative rounded-2xl overflow-hidden aspect-square bg-gray-100">
+                    <img src="${i.image_url}" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent flex items-end p-3">
+                        <p class="text-white text-[10px] font-bold">@${i.author}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function handleLike(e, id) {
+            e.stopPropagation();
+            if (!currentUser) return showModal('modal-auth');
+
+            const item = allData.find(i => i.id === id);
+            let likes = Array.isArray(item.likes) ? [...item.likes] : [];
+            const idx = likes.indexOf(currentUser.id);
+
+            if (idx > -1) likes.splice(idx, 1);
+            else likes.push(currentUser.id);
+
+            // 内存更新
+            item.likes = likes;
+            renderContent();
+
+            // 数据库更新
+            await _client.from('recipes').update({ likes }).eq('id', id);
+        }
+
+        function handleSearch() {
+            searchKeyword = document.getElementById('search-input').value;
+            renderContent();
+        }
+
+        function updateUI() {
+            const authBtn = document.getElementById('header-auth-btn');
+            const pName = document.getElementById('p-name'), pEmail = document.getElementById('p-email'), pAvatar = document.getElementById('p-avatar');
+            
+            if (currentUser) {
+                const name = currentUser.email.split('@')[0];
+                authBtn.innerText = `退出 (${name})`;
+                authBtn.onclick = () => _client.auth.signOut();
+                pName.innerText = name;
+                pEmail.innerText = currentUser.email;
+                pAvatar.innerText = name[0].toUpperCase();
+                document.getElementById('p-action-btn').classList.add('hidden');
+            } else {
+                authBtn.innerText = "登录/注册";
+                authBtn.onclick = () => showModal('modal-auth');
+                pName.innerText = "游客厨师";
+                pEmail.innerText = "登录后记录美味生活";
+                pAvatar.innerText = "👤";
+                document.getElementById('p-action-btn').classList.remove('hidden');
+                document.getElementById('p-action-btn').onclick = () => showModal('modal-auth');
+            }
+        }
+
+        async function handleAuth() {
+            const u = document.getElementById('auth-user').value, p = document.getElementById('auth-pwd').value;
+            if (!u || p.length < 6) return alert("名字必填，密码至少6位");
+            const email = `${u}@rose.com`;
+            const { error } = isSignUp ? await _client.auth.signUp({ email, password: p }) : await _client.auth.signInWithPassword({ email, password: p });
+            if (error) alert(error.message); else hideModal('modal-auth');
+        }
+
+        function switchView(v) {
+            ['home', 'moment', 'profile'].forEach(id => {
+                document.getElementById(`view-${id}`).classList.toggle('hidden', id !== v);
+            });
+        }
+        function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        document.getElementById('auth-submit').onclick = handleAuth;
+        document.getElementById('auth-toggle').onclick = () => {
+            isSignUp = !isSignUp;
+            document.getElementById('auth-title').innerText = isSignUp ? "注册账号" : "欢迎回来";
+            document.getElementById('auth-toggle').innerText = isSignUp ? "已有账号？去登录" : "没有账号？点击注册";
+        };
+        document.getElementById('nav-post').onclick = () => currentUser ? alert('发布功能请先复用旧版逻辑') : showModal('modal-auth');
+    </script>
+</body>
+</html>
